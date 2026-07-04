@@ -12,6 +12,12 @@
 <script src="https://unpkg.com/@phosphor-icons/web"></script>
 <script>tailwind.config = { darkMode: 'class' }</script>
 <style>
+  :root {
+    --accent: #0d9488;
+    --accent-strong: #0f5e58;
+    --accent-soft: rgba(13,148,136,0.12);
+    --accent-soft-strong: rgba(13,148,136,0.3);
+  }
   body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; touch-action: pan-y; }
   .view { display: none; }
   .view.active { display: flex; flex-direction: column; }
@@ -32,17 +38,18 @@
 
   <!-- VIEW: EINKAUF -->
   <div id="view-shopping" class="view active h-full w-full flex-col">
-    <header class="bg-teal-600 dark:bg-teal-800 text-white shadow-md z-10 shrink-0">
+    <header class="bg-[var(--accent)] dark:bg-[var(--accent-strong)] text-white shadow-md z-10 shrink-0">
       <div id="list-chips" class="flex gap-2 overflow-x-auto px-4 pt-4 pb-2 no-scrollbar items-center"></div>
       <div class="px-6 pb-1">
         <h1 class="text-xl font-bold" id="current-list-title">Lade Liste...</h1>
-        <p class="text-teal-100 text-sm" id="item-count">0 Artikel</p>
+        <p class="text-white/80 text-sm" id="item-count">0 Artikel</p>
         <p class="text-amber-200 text-xs hidden" id="price-sum"></p>
       </div>
       <div class="px-6 pb-3 flex items-center gap-2">
-        <i class="ph ph-storefront text-teal-100"></i>
-        <select id="store-select-active" onchange="onActiveStoreChange(this.value)" class="bg-teal-700/60 text-white text-sm rounded-lg px-2 py-1 border border-teal-400/30 outline-none"></select>
-        <span class="text-xs text-teal-200 ml-auto">sortiert nach Gang</span>
+        <i class="ph ph-storefront text-white/80"></i>
+        <select id="store-select-active" onchange="onActiveStoreChange(this.value)" class="bg-white/20 text-white text-sm rounded-lg px-2 py-1 border border-white/30 outline-none font-bold"></select>
+        <span class="text-xs text-white/70">sortiert die Liste nach Gang</span>
+        <button onclick="switchTab('view-setup')" class="ml-auto text-xs text-white/80 underline shrink-0">Reihenfolge ändern</button>
       </div>
     </header>
 
@@ -53,7 +60,7 @@
       <select id="category-select" class="w-full mb-2 bg-white dark:bg-gray-800 text-sm font-bold p-2 rounded-lg border dark:border-gray-700 dark:text-white"></select>
       <div class="flex gap-2">
         <input type="text" id="manual-input" placeholder="Artikel..." class="flex-1 p-3 rounded-xl bg-gray-100 dark:bg-gray-800 dark:text-white outline-none">
-        <button id="mic-btn" class="w-12 h-12 bg-teal-600 text-white rounded-xl flex items-center justify-center shrink-0 transition-colors"><i class="ph ph-microphone text-xl"></i></button>
+        <button id="mic-btn" class="w-12 h-12 bg-[var(--accent)] text-white rounded-xl flex items-center justify-center shrink-0 transition-colors"><i class="ph ph-microphone text-xl"></i></button>
       </div>
     </div>
   </div>
@@ -64,10 +71,19 @@
     <div class="space-y-4">
 
       <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm space-y-3">
+        <h3 class="font-bold dark:text-white flex items-center gap-2"><i class="ph ph-palette"></i> Akzentfarbe</h3>
+        <div class="flex gap-2 flex-wrap" id="accent-presets"></div>
+        <div class="flex items-center gap-2 pt-1">
+          <input type="color" id="accent-custom" value="#0d9488" onchange="setAccentColor(this.value)" class="w-10 h-10 rounded-lg border-0 bg-transparent cursor-pointer">
+          <span class="text-sm text-gray-500 dark:text-gray-400">Eigene Farbe wählen</span>
+        </div>
+      </div>
+
+      <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm space-y-3">
         <h3 class="font-bold dark:text-white flex items-center gap-2"><i class="ph ph-map-pin-line"></i> Gang-Reihenfolge pro Markt</h3>
         <div class="flex gap-2">
           <select id="aisle-store-select" onchange="renderAisleOrder()" class="flex-1 bg-gray-100 dark:bg-gray-700 dark:text-white p-2 rounded-lg text-sm"></select>
-          <button onclick="promptNewStore()" class="px-3 bg-teal-600 text-white rounded-lg text-sm font-bold">+ Markt</button>
+          <button onclick="promptNewStore()" class="px-3 bg-[var(--accent)] text-white rounded-lg text-sm font-bold">+ Markt</button>
         </div>
         <div id="aisle-order-list" class="space-y-1"></div>
       </div>
@@ -86,7 +102,7 @@
       </div>
       <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm space-y-2">
         <h3 class="font-bold dark:text-white">Lokales Backup</h3>
-        <button onclick="exportData()" class="w-full p-2 bg-teal-600 text-white rounded-lg font-bold">Als Datei exportieren</button>
+        <button onclick="exportData()" class="w-full p-2 bg-[var(--accent)] text-white rounded-lg font-bold">Als Datei exportieren</button>
         <label class="w-full block text-center p-2 bg-gray-200 dark:bg-gray-700 rounded-lg font-bold dark:text-white cursor-pointer">
           Datei importieren
           <input type="file" id="import-file" accept="application/json" class="hidden" onchange="importData(event)">
@@ -96,14 +112,14 @@
   </div>
 
   <nav class="bg-white dark:bg-gray-950 border-t dark:border-gray-800 flex pb-safe shrink-0">
-    <button onclick="switchTab('view-shopping')" id="tab-shopping" class="flex-1 py-4 text-teal-600 font-bold">Einkauf</button>
+    <button onclick="switchTab('view-shopping')" id="tab-shopping" class="flex-1 py-4 text-[var(--accent)] font-bold">Einkauf</button>
     <button onclick="switchTab('view-setup')" id="tab-setup" class="flex-1 py-4 text-gray-400 font-bold">Setup</button>
   </nav>
 
   <!-- SNACKBAR -->
   <div id="snackbar" class="absolute left-4 right-4 bottom-20 bg-gray-900 text-white rounded-xl p-3 flex items-center justify-between shadow-xl opacity-0 pointer-events-none translate-y-4 z-30">
     <span id="snackbar-text" class="text-sm"></span>
-    <button id="snackbar-undo" class="text-teal-300 font-bold text-sm ml-4 shrink-0">RÜCKGÄNGIG</button>
+    <button id="snackbar-undo" class="text-[var(--accent)] font-bold text-sm ml-4 shrink-0">RÜCKGÄNGIG</button>
   </div>
 
   <!-- MODAL -->
@@ -155,7 +171,7 @@ let appData = {
   stores: { "Aldi": [...DEFAULT_CATEGORIES], "Lidl": [...DEFAULT_CATEGORIES], "Rewe": [...DEFAULT_CATEGORIES] },
   activeStoreId: 'Aldi',
   itemHistory: {},
-  settings: { darkMode: false }
+  settings: { darkMode: false, accentColor: '#0d9488' }
 };
 let wakeLock = null;
 let lastUndoTimeout = null;
@@ -173,6 +189,7 @@ function loadData() {
       if (!appData.stores) appData.stores = { "Aldi": [...DEFAULT_CATEGORIES], "Lidl": [...DEFAULT_CATEGORIES], "Rewe": [...DEFAULT_CATEGORIES] };
       if (!appData.activeStoreId) appData.activeStoreId = Object.keys(appData.stores)[0];
       if (!appData.settings) appData.settings = { darkMode: false };
+      if (!appData.settings.accentColor) appData.settings.accentColor = '#0d9488';
       if (!appData.itemHistory) appData.itemHistory = {};
       appData.lists.forEach(list => {
         if (!list.icon) list.icon = '📝';
@@ -185,6 +202,7 @@ function loadData() {
     } catch (e) { console.error('Konnte gespeicherte Daten nicht laden', e); }
   }
   if (appData.settings.darkMode) document.documentElement.classList.add('dark');
+  applyAccentColor(appData.settings.accentColor);
 }
 
 function recordHistory(name, category) {
@@ -203,6 +221,45 @@ function guessCategory(name) {
     if (CATEGORY_KEYWORDS[cat].some(k => lower.includes(k))) return cat;
   }
   return "Sonstiges";
+}
+
+const ACCENT_PRESETS = ['#0d9488', '#dc2626', '#7c3aed', '#2563eb', '#ea580c', '#db2777', '#65a30d', '#0f172a'];
+
+function hexToRgb(hex) {
+  const m = hex.replace('#', '').match(/.{1,2}/g);
+  return { r: parseInt(m[0], 16), g: parseInt(m[1], 16), b: parseInt(m[2], 16) };
+}
+function shadeHex(hex, percent) {
+  const { r, g, b } = hexToRgb(hex);
+  const t = percent < 0 ? 0 : 255;
+  const p = Math.abs(percent);
+  const newR = Math.round((t - r) * p) + r;
+  const newG = Math.round((t - g) * p) + g;
+  const newB = Math.round((t - b) * p) + b;
+  return `#${[newR, newG, newB].map(v => v.toString(16).padStart(2, '0')).join('')}`;
+}
+function applyAccentColor(hex) {
+  const { r, g, b } = hexToRgb(hex);
+  document.documentElement.style.setProperty('--accent', hex);
+  document.documentElement.style.setProperty('--accent-strong', shadeHex(hex, -0.35));
+  document.documentElement.style.setProperty('--accent-soft', `rgba(${r},${g},${b},0.12)`);
+  document.documentElement.style.setProperty('--accent-soft-strong', `rgba(${r},${g},${b},0.3)`);
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute('content', hex);
+}
+function setAccentColor(hex) {
+  appData.settings.accentColor = hex;
+  applyAccentColor(hex);
+  saveData();
+  renderAccentPresets();
+}
+function renderAccentPresets() {
+  const container = document.getElementById('accent-presets');
+  if (!container) return;
+  container.innerHTML = ACCENT_PRESETS.map(hex => `
+    <button onclick="setAccentColor('${hex}')" class="w-9 h-9 rounded-full border-2 ${appData.settings.accentColor === hex ? 'border-gray-800 dark:border-white' : 'border-transparent'}" style="background:${hex}"></button>
+  `).join('');
+  document.getElementById('accent-custom').value = appData.settings.accentColor;
 }
 
 function toggleDarkMode() {
@@ -227,24 +284,24 @@ async function toggleWakeLock() {
 function switchTab(tabId) {
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   document.getElementById(tabId).classList.add('active');
-  document.getElementById('tab-shopping').classList.toggle('text-teal-600', tabId === 'view-shopping');
+  document.getElementById('tab-shopping').classList.toggle('text-[var(--accent)]', tabId === 'view-shopping');
   document.getElementById('tab-shopping').classList.toggle('text-gray-400', tabId !== 'view-shopping');
-  document.getElementById('tab-setup').classList.toggle('text-teal-600', tabId === 'view-setup');
+  document.getElementById('tab-setup').classList.toggle('text-[var(--accent)]', tabId === 'view-setup');
   document.getElementById('tab-setup').classList.toggle('text-gray-400', tabId !== 'view-setup');
-  if (tabId === 'view-setup') { populateAisleStoreSelect(); renderAisleOrder(); }
+  if (tabId === 'view-setup') { populateAisleStoreSelect(); renderAisleOrder(); renderAccentPresets(); }
 }
 
 /* ---------- LISTS ---------- */
 function renderListChips() {
   const container = document.getElementById('list-chips');
   container.innerHTML = appData.lists.map(list => `
-    <button class="chip-anim shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-full text-sm font-bold ${list.id === appData.activeListId ? 'bg-white text-teal-700' : 'bg-teal-700/50 text-white'}"
+    <button class="chip-anim shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-full text-sm font-bold ${list.id === appData.activeListId ? 'bg-white text-[var(--accent-strong)]' : 'bg-white/20 text-white'}"
       onclick="switchList('${list.id}')">
       <span>${list.icon}</span><span>${escapeHtml(list.name)}</span>
       ${list.id === appData.activeListId ? `<i class="ph ph-pencil-simple text-xs ml-1" onclick="event.stopPropagation(); openListActions('${list.id}')"></i>` : ''}
     </button>
   `).join('') + `
-    <button class="shrink-0 w-8 h-8 rounded-full bg-teal-700/50 text-white flex items-center justify-center" onclick="openNewListModal()"><i class="ph ph-plus"></i></button>
+    <button class="shrink-0 w-8 h-8 rounded-full bg-white/20 text-white flex items-center justify-center" onclick="openNewListModal()"><i class="ph ph-plus"></i></button>
   `;
 }
 
@@ -256,18 +313,18 @@ function openNewListModal() {
     <h3 class="font-bold text-lg dark:text-white">Neue Liste</h3>
     <input id="new-list-name" type="text" placeholder="Name (z.B. Party)" class="w-full p-3 rounded-xl bg-gray-100 dark:bg-gray-800 dark:text-white outline-none">
     <div class="flex gap-2 flex-wrap" id="emoji-picker">
-      ${LIST_EMOJIS.map(e => `<button class="emoji-opt text-2xl p-2 rounded-lg border-2 ${e === selectedEmoji ? 'border-teal-600' : 'border-transparent'}" onclick="selectEmoji(this,'${e}')">${e}</button>`).join('')}
+      ${LIST_EMOJIS.map(e => `<button class="emoji-opt text-2xl p-2 rounded-lg border-2 ${e === selectedEmoji ? 'border-[var(--accent)]' : 'border-transparent'}" onclick="selectEmoji(this,'${e}')">${e}</button>`).join('')}
     </div>
     <div class="flex gap-2 pt-2">
       <button class="flex-1 p-3 bg-gray-200 dark:bg-gray-700 dark:text-white rounded-xl font-bold" onclick="closeModal()">Abbrechen</button>
-      <button class="flex-1 p-3 bg-teal-600 text-white rounded-xl font-bold" onclick="createNewList()">Erstellen</button>
+      <button class="flex-1 p-3 bg-[var(--accent)] text-white rounded-xl font-bold" onclick="createNewList()">Erstellen</button>
     </div>
   `);
   window._selectedListEmoji = selectedEmoji;
 }
 function selectEmoji(btn, emoji) {
-  document.querySelectorAll('#emoji-picker .emoji-opt').forEach(b => b.classList.remove('border-teal-600'));
-  btn.classList.add('border-teal-600');
+  document.querySelectorAll('#emoji-picker .emoji-opt').forEach(b => b.classList.remove('border-[var(--accent)]'));
+  btn.classList.add('border-[var(--accent)]');
   window._selectedListEmoji = emoji;
 }
 function createNewList() {
@@ -284,7 +341,7 @@ function openListActions(id) {
     <h3 class="font-bold text-lg dark:text-white">${escapeHtml(list.name)}</h3>
     <input id="rename-list-name" type="text" value="${escapeHtml(list.name)}" class="w-full p-3 rounded-xl bg-gray-100 dark:bg-gray-800 dark:text-white outline-none">
     <div class="flex gap-2 pt-2">
-      <button class="flex-1 p-3 bg-teal-600 text-white rounded-xl font-bold" onclick="renameList('${id}')">Speichern</button>
+      <button class="flex-1 p-3 bg-[var(--accent)] text-white rounded-xl font-bold" onclick="renameList('${id}')">Speichern</button>
     </div>
     ${appData.lists.length > 1 ? `<button class="w-full p-3 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-xl font-bold" onclick="deleteList('${id}')">Liste löschen</button>` : ''}
     <button class="w-full p-3 bg-gray-100 dark:bg-gray-800 dark:text-white rounded-xl font-bold" onclick="closeModal()">Abbrechen</button>
@@ -318,7 +375,7 @@ function promptNewStore(fromHeader) {
     <input id="new-store-name" type="text" placeholder="z.B. Edeka" class="w-full p-3 rounded-xl bg-gray-100 dark:bg-gray-800 dark:text-white outline-none">
     <div class="flex gap-2 pt-2">
       <button class="flex-1 p-3 bg-gray-200 dark:bg-gray-700 dark:text-white rounded-xl font-bold" onclick="closeModal(); ${fromHeader ? 'populateStoreSelectActive();' : ''}">Abbrechen</button>
-      <button class="flex-1 p-3 bg-teal-600 text-white rounded-xl font-bold" onclick="createNewStore(${!!fromHeader})">Erstellen</button>
+      <button class="flex-1 p-3 bg-[var(--accent)] text-white rounded-xl font-bold" onclick="createNewStore(${!!fromHeader})">Erstellen</button>
     </div>
   `);
 }
@@ -403,7 +460,7 @@ function openEditItemModal(id) {
     </select>
     <div class="flex gap-2 pt-2">
       <button class="flex-1 p-3 bg-gray-200 dark:bg-gray-700 dark:text-white rounded-xl font-bold" onclick="closeModal()">Abbrechen</button>
-      <button class="flex-1 p-3 bg-teal-600 text-white rounded-xl font-bold" onclick="saveEditItem('${id}')">Speichern</button>
+      <button class="flex-1 p-3 bg-[var(--accent)] text-white rounded-xl font-bold" onclick="saveEditItem('${id}')">Speichern</button>
     </div>
   `);
 }
@@ -502,12 +559,12 @@ function renderShoppingList() {
           <div class="absolute inset-0 bg-red-500 flex items-center justify-end pr-4 text-white"><i class="ph ph-trash text-xl"></i></div>
           <div class="item-row item-anim ${item.done ? 'done' : ''} relative bg-gray-50 dark:bg-gray-800 rounded-xl p-3 flex items-center justify-between" style="transition-delay:${delay}ms" data-id="${item.id}">
             <label class="flex items-center gap-3 flex-1 cursor-pointer select-none min-w-0">
-              <input type="checkbox" ${item.done ? 'checked' : ''} onchange="toggleItemDone('${item.id}')" class="w-5 h-5 accent-teal-600 shrink-0">
+              <input type="checkbox" ${item.done ? 'checked' : ''} onchange="toggleItemDone('${item.id}')" class="w-5 h-5 accent-[var(--accent)] shrink-0">
               <span class="item-name dark:text-white break-words truncate">${escapeHtml(item.name)}</span>
-              ${item.qty ? `<span class="text-xs font-bold text-teal-700 dark:text-teal-300 bg-teal-100 dark:bg-teal-900/40 px-2 py-0.5 rounded-full shrink-0">${escapeHtml(item.qty)}</span>` : ''}
+              ${item.qty ? `<span class="text-xs font-bold text-[var(--accent-strong)] dark:text-[var(--accent)] bg-[var(--accent-soft)] dark:bg-[var(--accent-soft-strong)] px-2 py-0.5 rounded-full shrink-0">${escapeHtml(item.qty)}</span>` : ''}
               ${item.price != null ? `<span class="text-xs font-bold text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/40 px-2 py-0.5 rounded-full shrink-0">${item.price.toFixed(2)} €</span>` : ''}
             </label>
-            <button onclick="openEditItemModal('${item.id}')" class="text-gray-400 hover:text-teal-600 p-2 shrink-0"><i class="ph ph-pencil-simple"></i></button>
+            <button onclick="openEditItemModal('${item.id}')" class="text-gray-400 hover:text-[var(--accent)] p-2 shrink-0"><i class="ph ph-pencil-simple"></i></button>
             <button onclick="deleteItem('${item.id}')" class="text-gray-400 hover:text-red-500 p-2 shrink-0"><i class="ph ph-trash"></i></button>
           </div>
         </div>`;
@@ -560,7 +617,7 @@ function renderFavoriteChips() {
     .slice(0, 8);
   if (top.length === 0) { container.innerHTML = ''; return; }
   container.innerHTML = top.map(([key, entry]) => `
-    <button class="shrink-0 text-xs font-bold px-3 py-1.5 rounded-full bg-teal-100 dark:bg-teal-900/40 text-teal-700 dark:text-teal-300 flex items-center gap-1"
+    <button class="shrink-0 text-xs font-bold px-3 py-1.5 rounded-full bg-[var(--accent-soft)] dark:bg-[var(--accent-soft-strong)] text-[var(--accent-strong)] dark:text-[var(--accent)] flex items-center gap-1"
       onclick="addFavorite('${escapeHtml(entry.display).replace(/'/g, "\\'")}', '${entry.category}')">
       <i class="ph ph-plus text-xs"></i>${CATEGORY_ICON[entry.category] || ''} ${escapeHtml(entry.display)}
     </button>
@@ -598,10 +655,12 @@ function importData(event) {
       appData = parsed;
       if (!appData.stores) appData.stores = { "Aldi": [...DEFAULT_CATEGORIES] };
       if (!appData.activeStoreId) appData.activeStoreId = Object.keys(appData.stores)[0];
-      if (!appData.settings) appData.settings = { darkMode: false };
+      if (!appData.settings) appData.settings = { darkMode: false, accentColor: '#0d9488' };
+      if (!appData.settings.accentColor) appData.settings.accentColor = '#0d9488';
       saveData();
       document.documentElement.classList.toggle('dark', !!appData.settings.darkMode);
-      populateStoreSelectActive(); renderListChips(); renderShoppingList();
+      applyAccentColor(appData.settings.accentColor);
+      populateStoreSelectActive(); renderListChips(); renderShoppingList(); renderFavoriteChips();
       alert('Import erfolgreich!');
     } catch (e) { alert('Import fehlgeschlagen: Datei ungültig.'); }
   };
@@ -623,10 +682,10 @@ if (SpeechRecognition) {
   const recognition = new SpeechRecognition();
   recognition.lang = 'de-DE'; recognition.continuous = false; recognition.interimResults = false;
   recognition.onresult = (event) => { addItem(event.results[0][0].transcript, null); };
-  const reset = () => { micBtn.classList.remove('bg-red-600'); micBtn.classList.add('bg-teal-600'); };
+  const reset = () => { micBtn.classList.remove('bg-red-600'); micBtn.classList.add('bg-[var(--accent)]'); };
   recognition.onerror = reset; recognition.onend = reset;
   micBtn.addEventListener('click', () => {
-    micBtn.classList.remove('bg-teal-600'); micBtn.classList.add('bg-red-600');
+    micBtn.classList.remove('bg-[var(--accent)]'); micBtn.classList.add('bg-red-600');
     recognition.start();
   });
 } else {
