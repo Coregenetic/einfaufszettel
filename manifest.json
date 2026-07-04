@@ -1,0 +1,9 @@
+{
+  "name": "Einkaufszettel Pro",
+  "short_name": "Einkaufszettel",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0d9488",
+  "theme_color": "#0d9488",
+  "lang": "de"
+}
