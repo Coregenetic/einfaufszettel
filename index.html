@@ -93,6 +93,10 @@
       </div>
 
       <div class="flex justify-between items-center bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm">
+        <span class="dark:text-white">App-Guide erneut ansehen</span>
+        <button onclick="startOnboarding(true)" class="p-2 bg-gray-200 dark:bg-gray-700 rounded-lg text-sm font-bold dark:text-white">Starten</button>
+      </div>
+      <div class="flex justify-between items-center bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm">
         <span class="dark:text-white">Dark Mode</span>
         <button onclick="toggleDarkMode()" class="p-2 bg-gray-200 dark:bg-gray-700 rounded-lg text-xl">🌙</button>
       </div>
@@ -133,6 +137,25 @@
     <div id="modal-content" class="bg-white dark:bg-gray-900 w-full rounded-t-2xl p-6 space-y-4"></div>
   </div>
 
+  <!-- ONBOARDING -->
+  <div id="onboarding-overlay" class="hidden absolute inset-0 bg-black/60 z-[60] items-center justify-center p-6">
+    <div class="bg-white dark:bg-gray-900 w-full rounded-2xl p-6 space-y-4 shadow-2xl">
+      <div id="onboarding-dots" class="flex gap-1.5 justify-center"></div>
+      <div class="text-center space-y-2 py-2">
+        <p id="onboarding-emoji" class="text-5xl"></p>
+        <h3 id="onboarding-title" class="font-bold text-lg dark:text-white"></h3>
+        <p id="onboarding-text" class="text-sm text-gray-500 dark:text-gray-400"></p>
+      </div>
+      <div class="flex items-center justify-between gap-2 pt-2">
+        <button id="onboarding-skip" onclick="skipOnboarding()" class="text-xs text-gray-400 font-bold shrink-0">Überspringen</button>
+        <div class="flex gap-2">
+          <button id="onboarding-back" onclick="onboardingStep(-1)" class="hidden p-3 px-4 bg-gray-200 dark:bg-gray-700 dark:text-white rounded-xl font-bold text-sm">Zurück</button>
+          <button id="onboarding-next" onclick="onboardingStep(1)" class="p-3 px-5 bg-[var(--accent)] text-white rounded-xl font-bold text-sm">Weiter</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
 </div>
 
 <script>
@@ -164,7 +187,7 @@ let appData = {
   activeListId: 'l1',
   markets: ["Aldi", "Lidl", "Rewe"],
   itemHistory: {},
-  settings: { darkMode: false, accentColor: '#0d9488' }
+  settings: { darkMode: false, accentColor: '#0d9488', onboardingDone: false }
 };
 let wakeLock = null;
 let lastUndoTimeout = null;
@@ -239,6 +262,7 @@ function loadData() {
       }
       if (!appData.settings) appData.settings = { darkMode: false };
       if (!appData.settings.accentColor) appData.settings.accentColor = '#0d9488';
+      if (appData.settings.onboardingDone === undefined) appData.settings.onboardingDone = true; // Bestandsnutzer: Tour nicht aufzwingen
       if (!appData.itemHistory) appData.itemHistory = {};
       appData.lists.forEach(list => {
         if (!list.icon) list.icon = '📝';
@@ -326,6 +350,50 @@ async function toggleWakeLock() {
       wakeLock.addEventListener('release', () => { document.getElementById('wakelock-btn').textContent = "OFF"; wakeLock = null; });
     } catch (e) { alert("WakeLock nicht unterstützt."); }
   }
+}
+
+/* ---------- ONBOARDING ---------- */
+const ONBOARDING_STEPS = [
+  { emoji: '👋', title: 'Willkommen!', text: 'Euer gemeinsamer Einkaufszettel — läuft komplett lokal auf diesem Gerät, ohne Server. Kurzer Rundgang, dauert eine Minute.' },
+  { emoji: '➕', title: 'Artikel hinzufügen', text: 'Unten tippen oder das Mikrofon nutzen. Mengen werden automatisch erkannt, z.B. "2 Kilo Kartoffeln" oder "3 Packungen Milch".' },
+  { emoji: '🏬', title: 'Nach Markt sortiert', text: 'Wähle vor dem Hinzufügen den Markt (Aldi, Lidl, ...) im Dropdown. Die Liste gruppiert Artikel automatisch danach. Bist du gerade nur bei einem Markt, kannst du oben danach filtern.' },
+  { emoji: '📝', title: 'Mehrere Listen', text: 'Oben im Kopfbereich kannst du zwischen Listen wechseln oder neue erstellen, z.B. für die Party am Wochenende. Das Stift-Symbol benennt um oder löscht.' },
+  { emoji: '👉', title: 'Artikel verwalten', text: 'Abhaken per Checkbox. Nach links wischen löscht einen Artikel (mit Rückgängig-Option unten). Das Stift-Symbol am Artikel bearbeitet Menge, Preis und Markt.' },
+  { emoji: '⭐', title: 'Favoriten', text: 'Häufig gekaufte Artikel erscheinen automatisch als Schnellzugriff-Chips über der Eingabe — ein Tap genügt.' },
+  { emoji: '⚙️', title: 'Einstellungen', text: 'Im Setup-Tab: Akzentfarbe ändern, Märkte verwalten, und ganz wichtig — regelmäßig ein Backup exportieren, da alles nur lokal auf diesem Gerät gespeichert ist.' }
+];
+let onboardingIndex = 0;
+
+function startOnboarding(forced) {
+  onboardingIndex = 0;
+  renderOnboardingStep();
+  document.getElementById('onboarding-overlay').classList.remove('hidden');
+  document.getElementById('onboarding-overlay').classList.add('flex');
+}
+function renderOnboardingStep() {
+  const step = ONBOARDING_STEPS[onboardingIndex];
+  document.getElementById('onboarding-emoji').textContent = step.emoji;
+  document.getElementById('onboarding-title').textContent = step.title;
+  document.getElementById('onboarding-text').textContent = step.text;
+  document.getElementById('onboarding-dots').innerHTML = ONBOARDING_STEPS.map((_, i) =>
+    `<span class="w-2 h-2 rounded-full ${i === onboardingIndex ? 'bg-[var(--accent)]' : 'bg-gray-300 dark:bg-gray-600'}"></span>`
+  ).join('');
+  document.getElementById('onboarding-back').classList.toggle('hidden', onboardingIndex === 0);
+  document.getElementById('onboarding-next').textContent = onboardingIndex === ONBOARDING_STEPS.length - 1 ? "Los geht's!" : 'Weiter';
+  document.getElementById('onboarding-skip').classList.toggle('invisible', onboardingIndex === ONBOARDING_STEPS.length - 1);
+}
+function onboardingStep(dir) {
+  onboardingIndex += dir;
+  if (onboardingIndex >= ONBOARDING_STEPS.length) { finishOnboarding(); return; }
+  if (onboardingIndex < 0) onboardingIndex = 0;
+  renderOnboardingStep();
+}
+function skipOnboarding() { finishOnboarding(); }
+function finishOnboarding() {
+  document.getElementById('onboarding-overlay').classList.add('hidden');
+  document.getElementById('onboarding-overlay').classList.remove('flex');
+  appData.settings.onboardingDone = true;
+  saveData();
 }
 
 function switchTab(tabId) {
@@ -703,6 +771,7 @@ function importData(event) {
       if (!appData.markets) appData.markets = parsed.stores ? Object.keys(parsed.stores) : ["Aldi", "Lidl", "Rewe"];
       if (!appData.settings) appData.settings = { darkMode: false, accentColor: '#0d9488' };
       if (!appData.settings.accentColor) appData.settings.accentColor = '#0d9488';
+      if (appData.settings.onboardingDone === undefined) appData.settings.onboardingDone = true;
       if (!appData.itemHistory) appData.itemHistory = {};
       appData.lists.forEach(list => list.items.forEach(item => {
         if (item.category !== undefined) { item.store = null; delete item.category; }
@@ -754,6 +823,7 @@ populateMarketFilter();
 renderListChips();
 renderShoppingList();
 renderFavoriteChips();
+if (!appData.settings.onboardingDone) startOnboarding();
 
 /* ---------- OFFLINE (Service Worker) ---------- */
 if ('serviceWorker' in navigator) {
