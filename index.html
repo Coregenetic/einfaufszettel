@@ -37,6 +37,7 @@
       <div class="px-6 pb-1">
         <h1 class="text-xl font-bold" id="current-list-title">Lade Liste...</h1>
         <p class="text-teal-100 text-sm" id="item-count">0 Artikel</p>
+        <p class="text-amber-200 text-xs hidden" id="price-sum"></p>
       </div>
       <div class="px-6 pb-3 flex items-center gap-2">
         <i class="ph ph-storefront text-teal-100"></i>
@@ -48,6 +49,7 @@
     <main class="flex-1 overflow-y-auto p-4 space-y-1" id="shopping-list-container"></main>
 
     <div class="bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 p-4">
+      <div id="favorite-chips" class="flex gap-2 overflow-x-auto no-scrollbar mb-2 pb-1"></div>
       <select id="category-select" class="w-full mb-2 bg-white dark:bg-gray-800 text-sm font-bold p-2 rounded-lg border dark:border-gray-700 dark:text-white"></select>
       <div class="flex gap-2">
         <input type="text" id="manual-input" placeholder="Artikel..." class="flex-1 p-3 rounded-xl bg-gray-100 dark:bg-gray-800 dark:text-white outline-none">
@@ -152,6 +154,7 @@ let appData = {
   activeListId: 'l1',
   stores: { "Aldi": [...DEFAULT_CATEGORIES], "Lidl": [...DEFAULT_CATEGORIES], "Rewe": [...DEFAULT_CATEGORIES] },
   activeStoreId: 'Aldi',
+  itemHistory: {},
   settings: { darkMode: false }
 };
 let wakeLock = null;
@@ -170,11 +173,13 @@ function loadData() {
       if (!appData.stores) appData.stores = { "Aldi": [...DEFAULT_CATEGORIES], "Lidl": [...DEFAULT_CATEGORIES], "Rewe": [...DEFAULT_CATEGORIES] };
       if (!appData.activeStoreId) appData.activeStoreId = Object.keys(appData.stores)[0];
       if (!appData.settings) appData.settings = { darkMode: false };
+      if (!appData.itemHistory) appData.itemHistory = {};
       appData.lists.forEach(list => {
         if (!list.icon) list.icon = '📝';
         list.items.forEach(item => {
           if (!item.category) { item.category = guessCategory(item.name); delete item.store; }
           if (item.qty === undefined) item.qty = null;
+          if (item.price === undefined) item.price = null;
         });
       });
     } catch (e) { console.error('Konnte gespeicherte Daten nicht laden', e); }
@@ -182,8 +187,18 @@ function loadData() {
   if (appData.settings.darkMode) document.documentElement.classList.add('dark');
 }
 
+function recordHistory(name, category) {
+  const key = name.toLowerCase();
+  const entry = appData.itemHistory[key] || { count: 0, category, display: name };
+  entry.count += 1;
+  entry.category = category;
+  entry.display = name;
+  appData.itemHistory[key] = entry;
+}
+
 function guessCategory(name) {
   const lower = (name || '').toLowerCase();
+  if (appData.itemHistory && appData.itemHistory[lower]) return appData.itemHistory[lower].category;
   for (const cat in CATEGORY_KEYWORDS) {
     if (CATEGORY_KEYWORDS[cat].some(k => lower.includes(k))) return cat;
   }
@@ -233,7 +248,7 @@ function renderListChips() {
   `;
 }
 
-function switchList(id) { appData.activeListId = id; saveData(); renderShoppingList(); renderListChips(); }
+function switchList(id) { appData.activeListId = id; saveData(); renderShoppingList(); renderListChips(); renderFavoriteChips(); }
 
 function openNewListModal() {
   let selectedEmoji = LIST_EMOJIS[0];
@@ -355,16 +370,22 @@ function addItem(rawText, category) {
   if (!name) return;
   const list = getActiveList();
   const finalCategory = category || guessCategory(name);
+  recordHistory(name, finalCategory);
 
   // Bereits vorhandenen, noch offenen Artikel mit gleichem Namen/Kategorie erweitern statt duplizieren
   const existing = list.items.find(i => !i.done && i.name.toLowerCase() === name.toLowerCase() && i.category === finalCategory);
   if (existing && qty) {
     existing.qty = qty;
-    saveData(); renderShoppingList();
+    saveData(); renderShoppingList(); renderFavoriteChips();
     return;
   }
-  list.items.push({ id: 'i' + Date.now() + Math.random().toString(36).slice(2, 6), name, qty: qty || null, category: finalCategory, done: false });
-  saveData(); renderShoppingList();
+  list.items.push({ id: 'i' + Date.now() + Math.random().toString(36).slice(2, 6), name, qty: qty || null, price: null, category: finalCategory, done: false });
+  saveData(); renderShoppingList(); renderFavoriteChips();
+}
+
+function addFavorite(name, category) {
+  document.getElementById('manual-input').value = '';
+  addItem(name, category);
 }
 
 function openEditItemModal(id) {
@@ -373,7 +394,10 @@ function openEditItemModal(id) {
   openModal(`
     <h3 class="font-bold text-lg dark:text-white">Artikel bearbeiten</h3>
     <input id="edit-item-name" type="text" value="${escapeHtml(item.name)}" placeholder="Name" class="w-full p-3 rounded-xl bg-gray-100 dark:bg-gray-800 dark:text-white outline-none">
-    <input id="edit-item-qty" type="text" value="${item.qty ? escapeHtml(item.qty) : ''}" placeholder="Menge (z.B. 2 kg, 3x)" class="w-full p-3 rounded-xl bg-gray-100 dark:bg-gray-800 dark:text-white outline-none">
+    <div class="flex gap-2">
+      <input id="edit-item-qty" type="text" value="${item.qty ? escapeHtml(item.qty) : ''}" placeholder="Menge (z.B. 2 kg, 3x)" class="flex-1 p-3 rounded-xl bg-gray-100 dark:bg-gray-800 dark:text-white outline-none">
+      <input id="edit-item-price" type="number" step="0.01" min="0" value="${item.price ?? ''}" placeholder="Preis €" class="w-28 p-3 rounded-xl bg-gray-100 dark:bg-gray-800 dark:text-white outline-none">
+    </div>
     <select id="edit-item-category" class="w-full p-3 rounded-xl bg-gray-100 dark:bg-gray-800 dark:text-white outline-none">
       ${DEFAULT_CATEGORIES.map(c => `<option value="${c}" ${c === item.category ? 'selected' : ''}>${CATEGORY_ICON[c]} ${c}</option>`).join('')}
     </select>
@@ -390,13 +414,16 @@ function saveEditItem(id) {
   if (!name) return;
   item.name = name;
   item.qty = document.getElementById('edit-item-qty').value.trim() || null;
+  const priceVal = document.getElementById('edit-item-price').value;
+  item.price = priceVal !== '' ? parseFloat(priceVal) : null;
   item.category = document.getElementById('edit-item-category').value;
-  saveData(); closeModal(); renderShoppingList();
+  recordHistory(name, item.category);
+  saveData(); closeModal(); renderShoppingList(); renderFavoriteChips();
 }
 
 function toggleItemDone(id) {
   const item = getActiveList().items.find(i => i.id === id);
-  if (item) { item.done = !item.done; saveData(); renderShoppingList(); }
+  if (item) { item.done = !item.done; saveData(); renderShoppingList(); renderFavoriteChips(); }
 }
 
 function deleteItem(id) {
@@ -404,8 +431,8 @@ function deleteItem(id) {
   const idx = list.items.findIndex(i => i.id === id);
   if (idx === -1) return;
   const [removed] = list.items.splice(idx, 1);
-  saveData(); renderShoppingList();
-  showUndo('Artikel gelöscht', () => { list.items.splice(idx, 0, removed); saveData(); renderShoppingList(); });
+  saveData(); renderShoppingList(); renderFavoriteChips();
+  showUndo('Artikel gelöscht', () => { list.items.splice(idx, 0, removed); saveData(); renderShoppingList(); renderFavoriteChips(); });
 }
 
 function clearDone() {
@@ -414,10 +441,10 @@ function clearDone() {
   list.items.forEach((item, index) => { if (item.done) removed.push({ item, index }); });
   if (removed.length === 0) return;
   list.items = list.items.filter(i => !i.done);
-  saveData(); renderShoppingList();
+  saveData(); renderShoppingList(); renderFavoriteChips();
   showUndo(removed.length + ' Artikel entfernt', () => {
     removed.sort((a, b) => a.index - b.index).forEach(r => list.items.splice(r.index, 0, r.item));
-    saveData(); renderShoppingList();
+    saveData(); renderShoppingList(); renderFavoriteChips();
   });
 }
 
@@ -440,6 +467,11 @@ function renderShoppingList() {
   document.getElementById('current-list-title').textContent = list.name;
   const openCount = list.items.filter(i => !i.done).length;
   document.getElementById('item-count').textContent = `${openCount} offen · ${list.items.length} Artikel`;
+
+  const priceSum = list.items.filter(i => !i.done && i.price != null).reduce((sum, i) => sum + i.price, 0);
+  const priceEl = document.getElementById('price-sum');
+  if (priceSum > 0) { priceEl.textContent = `≈ ${priceSum.toFixed(2)} € (offene Artikel)`; priceEl.classList.remove('hidden'); }
+  else { priceEl.classList.add('hidden'); }
 
   if (list.items.length === 0) {
     container.innerHTML = '<p class="text-center text-gray-400 mt-8">Noch keine Artikel. Fang unten an zu tippen!</p>';
@@ -473,6 +505,7 @@ function renderShoppingList() {
               <input type="checkbox" ${item.done ? 'checked' : ''} onchange="toggleItemDone('${item.id}')" class="w-5 h-5 accent-teal-600 shrink-0">
               <span class="item-name dark:text-white break-words truncate">${escapeHtml(item.name)}</span>
               ${item.qty ? `<span class="text-xs font-bold text-teal-700 dark:text-teal-300 bg-teal-100 dark:bg-teal-900/40 px-2 py-0.5 rounded-full shrink-0">${escapeHtml(item.qty)}</span>` : ''}
+              ${item.price != null ? `<span class="text-xs font-bold text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/40 px-2 py-0.5 rounded-full shrink-0">${item.price.toFixed(2)} €</span>` : ''}
             </label>
             <button onclick="openEditItemModal('${item.id}')" class="text-gray-400 hover:text-teal-600 p-2 shrink-0"><i class="ph ph-pencil-simple"></i></button>
             <button onclick="deleteItem('${item.id}')" class="text-gray-400 hover:text-red-500 p-2 shrink-0"><i class="ph ph-trash"></i></button>
@@ -516,6 +549,23 @@ function attachSwipe(rowEl, id) {
 }
 
 function escapeHtml(str) { const div = document.createElement('div'); div.textContent = str; return div.innerHTML; }
+
+function renderFavoriteChips() {
+  const container = document.getElementById('favorite-chips');
+  const list = getActiveList();
+  const openNames = new Set(list.items.filter(i => !i.done).map(i => i.name.toLowerCase()));
+  const top = Object.entries(appData.itemHistory)
+    .filter(([key]) => !openNames.has(key))
+    .sort((a, b) => b[1].count - a[1].count)
+    .slice(0, 8);
+  if (top.length === 0) { container.innerHTML = ''; return; }
+  container.innerHTML = top.map(([key, entry]) => `
+    <button class="shrink-0 text-xs font-bold px-3 py-1.5 rounded-full bg-teal-100 dark:bg-teal-900/40 text-teal-700 dark:text-teal-300 flex items-center gap-1"
+      onclick="addFavorite('${escapeHtml(entry.display).replace(/'/g, "\\'")}', '${entry.category}')">
+      <i class="ph ph-plus text-xs"></i>${CATEGORY_ICON[entry.category] || ''} ${escapeHtml(entry.display)}
+    </button>
+  `).join('');
+}
 
 /* ---------- MODAL ---------- */
 function openModal(html) {
@@ -590,6 +640,14 @@ populateStoreSelectActive();
 populateAisleStoreSelect();
 renderListChips();
 renderShoppingList();
+renderFavoriteChips();
+
+/* ---------- OFFLINE (Service Worker) ---------- */
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(() => { /* z.B. bei file:// nicht möglich, ignorieren */ });
+  });
+}
 </script>
 </body>
 </html>
