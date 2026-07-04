@@ -36,6 +36,8 @@
 <body class="h-full w-full bg-gray-50 dark:bg-gray-900 overflow-hidden flex justify-center">
 <div class="max-w-md w-full bg-white dark:bg-gray-950 h-full shadow-2xl relative flex flex-col overflow-hidden">
 
+  <div id="storage-warning" class="hidden absolute top-0 left-0 right-0 z-50 bg-red-600 text-white text-xs font-bold p-2 text-center"></div>
+
   <!-- VIEW: EINKAUF -->
   <div id="view-shopping" class="view active h-full w-full flex-col">
     <header class="bg-[var(--accent)] dark:bg-[var(--accent-strong)] text-white shadow-md z-10 shrink-0">
@@ -101,7 +103,9 @@
         <button onclick="clearDone()" class="w-full p-2 bg-gray-200 dark:bg-gray-700 rounded-lg font-bold dark:text-white">Abgehakte entfernen</button>
       </div>
       <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm space-y-2">
-        <h3 class="font-bold dark:text-white">Lokales Backup</h3>
+        <h3 class="font-bold dark:text-white flex items-center gap-2"><i class="ph ph-hard-drive"></i> Speicher & Backup</h3>
+        <p id="save-status" class="text-xs text-gray-500 dark:text-gray-400">Noch nicht gespeichert</p>
+        <p class="text-xs text-gray-500 dark:text-gray-400">Alle Daten liegen lokal in diesem Browser auf diesem Gerät (kein Server, kein automatisches Teilen zwischen Geräten). Bei Handy-Wechsel oder App-Löschung vorher exportieren!</p>
         <button onclick="exportData()" class="w-full p-2 bg-[var(--accent)] text-white rounded-lg font-bold">Als Datei exportieren</button>
         <label class="w-full block text-center p-2 bg-gray-200 dark:bg-gray-700 rounded-lg font-bold dark:text-white cursor-pointer">
           Datei importieren
@@ -178,10 +182,61 @@ let lastUndoTimeout = null;
 
 function getActiveList() { return appData.lists.find(l => l.id === appData.activeListId) || appData.lists[0]; }
 
-function saveData() { localStorage.setItem('einkaufszettel_pro', JSON.stringify(appData)); }
+let lastSavedAt = null;
+
+function saveData() {
+  try {
+    localStorage.setItem('einkaufszettel_pro', JSON.stringify(appData));
+    lastSavedAt = new Date();
+    hideStorageWarning();
+    updateSaveStatus();
+    return true;
+  } catch (e) {
+    console.error('Speichern fehlgeschlagen', e);
+    showStorageWarning(e);
+    return false;
+  }
+}
+
+function checkStorageAvailable() {
+  try {
+    const testKey = '__storage_test__';
+    localStorage.setItem(testKey, '1');
+    localStorage.removeItem(testKey);
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+function showStorageWarning(err) {
+  const banner = document.getElementById('storage-warning');
+  if (!banner) return;
+  const isQuota = err && (err.name === 'QuotaExceededError' || err.code === 22);
+  banner.textContent = isQuota
+    ? '⚠️ Speicher ist voll – Änderungen wurden NICHT gespeichert. Bitte alte Listen exportieren & löschen.'
+    : '⚠️ Speichern nicht möglich (privater Modus / Speicher blockiert). Änderungen gehen beim Schließen verloren!';
+  banner.classList.remove('hidden');
+}
+function hideStorageWarning() {
+  const banner = document.getElementById('storage-warning');
+  if (banner) banner.classList.add('hidden');
+}
+function updateSaveStatus() {
+  const el = document.getElementById('save-status');
+  if (!el || !lastSavedAt) return;
+  const time = lastSavedAt.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  el.textContent = `Zuletzt gespeichert: ${time} · sicher in diesem Browser abgelegt`;
+}
 
 function loadData() {
-  const saved = localStorage.getItem('einkaufszettel_pro');
+  let saved = null;
+  try {
+    saved = localStorage.getItem('einkaufszettel_pro');
+  } catch (e) {
+    console.error('Speicher nicht lesbar', e);
+    showStorageWarning(e);
+  }
   if (saved) {
     try {
       const parsed = JSON.parse(saved);
@@ -693,7 +748,11 @@ if (SpeechRecognition) {
 }
 
 /* ---------- INIT ---------- */
+if (!checkStorageAvailable()) {
+  showStorageWarning({ name: 'Unavailable' });
+}
 loadData();
+saveData();
 populateCategorySelect();
 populateStoreSelectActive();
 populateAisleStoreSelect();
