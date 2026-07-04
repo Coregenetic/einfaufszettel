@@ -1,143 +1,276 @@
 <!DOCTYPE html>
 <html lang="de" class="h-full">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Einkaufszettel Pro</title>
-    
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="theme-color" content="#0d9488">
-
-    <link id="manifest-link" rel="manifest" href="">
-
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/@phosphor-icons/web"></script>
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-        }
-    </script>
-    <style>
-        body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
-        .view { display: none; }
-        .view.active { display: flex; flex-direction: column; }
-        .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Einkaufszettel Pro</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0d9488">
+<link id="manifest-link" rel="manifest" href="manifest.json">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/@phosphor-icons/web"></script>
+<script>
+  tailwind.config = { darkMode: 'class' }
+</script>
+<style>
+  body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+  .view { display: none; }
+  .view.active { display: flex; flex-direction: column; }
+  .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+  .item-row.done span.item-name { text-decoration: line-through; opacity: 0.5; }
+</style>
 </head>
 <body class="h-full w-full bg-gray-50 dark:bg-gray-900 overflow-hidden flex justify-center">
+<div class="max-w-md w-full bg-white dark:bg-gray-950 h-full shadow-2xl relative flex flex-col overflow-hidden">
 
-    <div class="max-w-md w-full bg-white dark:bg-gray-950 h-full shadow-2xl relative flex flex-col overflow-hidden">
-        
-        <!-- VIEW: EINKAUF -->
-        <div id="view-shopping" class="view active h-full w-full flex-col">
-            <header class="bg-teal-600 dark:bg-teal-800 text-white p-6 shadow-md z-10">
-                <h1 class="text-2xl font-bold" id="current-list-title">Lade Liste...</h1>
-                <p class="text-teal-100 text-sm" id="item-count">0 Artikel</p>
-            </header>
-            <main class="flex-1 overflow-y-auto p-4" id="shopping-list-container"></main>
-            <div class="bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 p-4">
-                <select id="store-select" class="w-full mb-2 bg-white dark:bg-gray-800 text-sm font-bold p-2 rounded-lg border dark:border-gray-700 dark:text-white">
-                    <option value="Allgemein">🛒 Allgemein</option>
-                    <option value="Aldi">🔵 Aldi</option>
-                    <option value="Lidl">🟡 Lidl</option>
-                    <option value="Rewe">🔴 Rewe</option>
-                </select>
-                <div class="flex gap-2">
-                    <input type="text" id="manual-input" placeholder="Artikel..." class="flex-1 p-3 rounded-xl bg-gray-100 dark:bg-gray-800 dark:text-white outline-none">
-                    <button id="mic-btn" class="w-12 h-12 bg-teal-600 text-white rounded-xl flex items-center justify-center"><i class="ph ph-microphone text-xl"></i></button>
-                </div>
-            </div>
-        </div>
+  <!-- VIEW: EINKAUF -->
+  <div id="view-shopping" class="view active h-full w-full flex-col">
+    <header class="bg-teal-600 dark:bg-teal-800 text-white p-6 shadow-md z-10">
+      <h1 class="text-2xl font-bold" id="current-list-title">Lade Liste...</h1>
+      <p class="text-teal-100 text-sm" id="item-count">0 Artikel</p>
+    </header>
 
-        <!-- VIEW: LISTEN & SETUP -->
-        <div id="view-setup" class="view h-full w-full flex-col bg-gray-50 dark:bg-gray-900 p-6 overflow-y-auto">
-            <h2 class="text-xl font-bold mb-6 dark:text-white">Einstellungen & Sync</h2>
-            
-            <div class="space-y-4">
-                <div class="flex justify-between items-center bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm">
-                    <span class="dark:text-white">Dark Mode</span>
-                    <button onclick="toggleDarkMode()" class="p-2 bg-gray-200 dark:bg-gray-700 rounded-lg text-xl">🌙</button>
-                </div>
-                
-                <div class="flex justify-between items-center bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm">
-                    <span class="dark:text-white">Supermarkt-Modus (Display an)</span>
-                    <button onclick="toggleWakeLock()" id="wakelock-btn" class="p-2 bg-gray-200 dark:bg-gray-700 rounded-lg">OFF</button>
-                </div>
+    <main class="flex-1 overflow-y-auto p-4 space-y-2" id="shopping-list-container"></main>
 
-                <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm space-y-2">
-                    <h3 class="font-bold dark:text-white">GitHub Sync</h3>
-                    <input type="text" id="git-token" placeholder="GitHub Token" class="w-full p-2 bg-gray-100 dark:bg-gray-900 rounded-lg text-sm dark:text-white">
-                    <input type="text" id="git-repo" placeholder="user/repo" class="w-full p-2 bg-gray-100 dark:bg-gray-900 rounded-lg text-sm dark:text-white">
-                    <button onclick="syncToGit()" class="w-full p-2 bg-teal-600 text-white rounded-lg font-bold">Synchronisieren</button>
-                </div>
-            </div>
-        </div>
-
-        <nav class="bg-white dark:bg-gray-950 border-t dark:border-gray-800 flex pb-safe">
-            <button onclick="switchTab('view-shopping')" class="flex-1 py-4 text-teal-600 font-bold">Einkauf</button>
-            <button onclick="switchTab('view-setup')" class="flex-1 py-4 text-gray-400 font-bold">Setup</button>
-        </nav>
+    <div class="bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 p-4">
+      <select id="store-select" class="w-full mb-2 bg-white dark:bg-gray-800 text-sm font-bold p-2 rounded-lg border dark:border-gray-700 dark:text-white">
+        <option value="Allgemein">🛒 Allgemein</option>
+        <option value="Aldi">🔵 Aldi</option>
+        <option value="Lidl">🟡 Lidl</option>
+        <option value="Rewe">🔴 Rewe</option>
+      </select>
+      <div class="flex gap-2">
+        <input type="text" id="manual-input" placeholder="Artikel..." class="flex-1 p-3 rounded-xl bg-gray-100 dark:bg-gray-800 dark:text-white outline-none">
+        <button id="mic-btn" class="w-12 h-12 bg-teal-600 text-white rounded-xl flex items-center justify-center"><i class="ph ph-microphone text-xl"></i></button>
+      </div>
     </div>
+  </div>
 
-    <script>
-        let appData = { lists: [{ id: 'l1', name: 'Standard', items: [] }], settings: { darkMode: false } };
-        let wakeLock = null;
+  <!-- VIEW: LISTEN & SETUP -->
+  <div id="view-setup" class="view h-full w-full flex-col bg-gray-50 dark:bg-gray-900 p-6 overflow-y-auto">
+    <h2 class="text-xl font-bold mb-6 dark:text-white">Einstellungen</h2>
+    <div class="space-y-4">
+      <div class="flex justify-between items-center bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm">
+        <span class="dark:text-white">Dark Mode</span>
+        <button onclick="toggleDarkMode()" class="p-2 bg-gray-200 dark:bg-gray-700 rounded-lg text-xl">🌙</button>
+      </div>
+      <div class="flex justify-between items-center bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm">
+        <span class="dark:text-white">Supermarkt-Modus (Display an)</span>
+        <button onclick="toggleWakeLock()" id="wakelock-btn" class="p-2 bg-gray-200 dark:bg-gray-700 rounded-lg">OFF</button>
+      </div>
+      <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm space-y-2">
+        <h3 class="font-bold dark:text-white">Erledigte Artikel löschen</h3>
+        <button onclick="clearDone()" class="w-full p-2 bg-gray-200 dark:bg-gray-700 rounded-lg font-bold dark:text-white">Abgehakte entfernen</button>
+      </div>
+      <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm space-y-2">
+        <h3 class="font-bold dark:text-white">Lokales Backup</h3>
+        <button onclick="exportData()" class="w-full p-2 bg-teal-600 text-white rounded-lg font-bold">Als Datei exportieren</button>
+        <label class="w-full block text-center p-2 bg-gray-200 dark:bg-gray-700 rounded-lg font-bold dark:text-white cursor-pointer">
+          Datei importieren
+          <input type="file" id="import-file" accept="application/json" class="hidden" onchange="importData(event)">
+        </label>
+      </div>
+    </div>
+  </div>
 
-        function toggleDarkMode() {
-            document.documentElement.classList.toggle('dark');
-            appData.settings.darkMode = document.documentElement.classList.contains('dark');
-            saveData();
-        }
+  <nav class="bg-white dark:bg-gray-950 border-t dark:border-gray-800 flex pb-safe">
+    <button onclick="switchTab('view-shopping')" id="tab-shopping" class="flex-1 py-4 text-teal-600 font-bold">Einkauf</button>
+    <button onclick="switchTab('view-setup')" id="tab-setup" class="flex-1 py-4 text-gray-400 font-bold">Setup</button>
+  </nav>
+</div>
 
-        async function toggleWakeLock() {
-            if (wakeLock) {
-                await wakeLock.release();
-                wakeLock = null;
-                document.getElementById('wakelock-btn').textContent = "OFF";
-            } else {
-                try {
-                    wakeLock = await navigator.wakeLock.request('screen');
-                    document.getElementById('wakelock-btn').textContent = "ON";
-                } catch (e) { alert("WakeLock nicht unterstützt."); }
-            }
-        }
+<script>
+let appData = { lists: [{ id: 'l1', name: 'Standard', items: [] }], activeListId: 'l1', settings: { darkMode: false } };
+let wakeLock = null;
 
-        async function syncToGit() {
-            const token = document.getElementById('git-token').value;
-            const repo = document.getElementById('git-repo').value;
-            const url = `https://api.github.com/repos/${repo}/contents/data.json`;
-            
-            // 1. Get current SHA to overwrite
-            const res = await fetch(url, { headers: { 'Authorization': `token ${token}` }});
-            const data = await res.json();
-            
-            // 2. Put update
-            await fetch(url, {
-                method: 'PUT',
-                headers: { 'Authorization': `token ${token}`, 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    message: "Update List",
-                    content: btoa(JSON.stringify(appData)),
-                    sha: data.sha
-                })
-            });
-            alert("Erfolgreich synchronisiert!");
-        }
+function getActiveList() {
+  return appData.lists.find(l => l.id === appData.activeListId) || appData.lists[0];
+}
 
-        function switchTab(tabId) {
-            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-            document.getElementById(tabId).classList.add('active');
-        }
+function saveData() {
+  localStorage.setItem('einkaufszettel_pro', JSON.stringify(appData));
+}
 
-        function saveData() { localStorage.setItem('einkaufszettel_pro', JSON.stringify(appData)); }
-        function loadData() { 
-            const saved = localStorage.getItem('einkaufszettel_pro');
-            if(saved) appData = JSON.parse(saved);
-            if(appData.settings.darkMode) document.documentElement.classList.add('dark');
-        }
+function loadData() {
+  const saved = localStorage.getItem('einkaufszettel_pro');
+  if (saved) {
+    try { appData = JSON.parse(saved); } catch (e) { console.error('Konnte gespeicherte Daten nicht laden', e); }
+  }
+  if (appData.settings.darkMode) document.documentElement.classList.add('dark');
+}
 
-        loadData();
-    </script>
+function toggleDarkMode() {
+  document.documentElement.classList.toggle('dark');
+  appData.settings.darkMode = document.documentElement.classList.contains('dark');
+  saveData();
+}
+
+async function toggleWakeLock() {
+  if (wakeLock) {
+    await wakeLock.release();
+    wakeLock = null;
+    document.getElementById('wakelock-btn').textContent = "OFF";
+  } else {
+    try {
+      wakeLock = await navigator.wakeLock.request('screen');
+      document.getElementById('wakelock-btn').textContent = "ON";
+      wakeLock.addEventListener('release', () => {
+        document.getElementById('wakelock-btn').textContent = "OFF";
+        wakeLock = null;
+      });
+    } catch (e) { alert("WakeLock nicht unterstützt."); }
+  }
+}
+
+function switchTab(tabId) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById(tabId).classList.add('active');
+  document.getElementById('tab-shopping').classList.toggle('text-teal-600', tabId === 'view-shopping');
+  document.getElementById('tab-shopping').classList.toggle('text-gray-400', tabId !== 'view-shopping');
+  document.getElementById('tab-setup').classList.toggle('text-teal-600', tabId === 'view-setup');
+  document.getElementById('tab-setup').classList.toggle('text-gray-400', tabId !== 'view-setup');
+}
+
+const STORE_EMOJI = { Allgemein: '🛒', Aldi: '🔵', Lidl: '🟡', Rewe: '🔴' };
+
+function addItem(name, store) {
+  name = name.trim();
+  if (!name) return;
+  const list = getActiveList();
+  list.items.push({ id: 'i' + Date.now() + Math.random().toString(36).slice(2, 6), name, store, done: false });
+  saveData();
+  renderShoppingList();
+}
+
+function toggleItemDone(id) {
+  const list = getActiveList();
+  const item = list.items.find(i => i.id === id);
+  if (item) { item.done = !item.done; saveData(); renderShoppingList(); }
+}
+
+function deleteItem(id) {
+  const list = getActiveList();
+  list.items = list.items.filter(i => i.id !== id);
+  saveData();
+  renderShoppingList();
+}
+
+function clearDone() {
+  const list = getActiveList();
+  list.items = list.items.filter(i => !i.done);
+  saveData();
+  renderShoppingList();
+}
+
+function renderShoppingList() {
+  const list = getActiveList();
+  const container = document.getElementById('shopping-list-container');
+  document.getElementById('current-list-title').textContent = list.name;
+  document.getElementById('item-count').textContent = `${list.items.length} Artikel`;
+
+  if (list.items.length === 0) {
+    container.innerHTML = '<p class="text-center text-gray-400 mt-8">Noch keine Artikel. Fang unten an zu tippen!</p>';
+    return;
+  }
+
+  const groups = {};
+  list.items.forEach(item => {
+    const key = item.store || 'Allgemein';
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(item);
+  });
+
+  container.innerHTML = Object.keys(groups).map(store => `
+    <div class="mb-3">
+      <p class="text-xs font-bold uppercase text-gray-400 mb-1">${STORE_EMOJI[store] || '🛒'} ${store}</p>
+      ${groups[store].map(item => `
+        <div class="item-row ${item.done ? 'done' : ''} flex items-center justify-between bg-gray-50 dark:bg-gray-800 rounded-xl p-3 mb-1">
+          <label class="flex items-center gap-3 flex-1 cursor-pointer">
+            <input type="checkbox" ${item.done ? 'checked' : ''} onchange="toggleItemDone('${item.id}')" class="w-5 h-5 accent-teal-600 shrink-0">
+            <span class="item-name dark:text-white break-words">${escapeHtml(item.name)}</span>
+          </label>
+          <button onclick="deleteItem('${item.id}')" class="text-gray-400 hover:text-red-500 p-2 shrink-0"><i class="ph ph-trash"></i></button>
+        </div>
+      `).join('')}
+    </div>
+  `).join('');
+}
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+function exportData() {
+  const blob = new Blob([JSON.stringify(appData, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `einkaufszettel-backup-${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importData(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const parsed = JSON.parse(reader.result);
+      if (!parsed.lists) throw new Error('Ungültiges Format');
+      appData = parsed;
+      if (!appData.settings) appData.settings = { darkMode: false };
+      if (!appData.activeListId) appData.activeListId = appData.lists[0].id;
+      saveData();
+      document.documentElement.classList.toggle('dark', !!appData.settings.darkMode);
+      renderShoppingList();
+      alert('Import erfolgreich!');
+    } catch (e) {
+      alert('Import fehlgeschlagen: Datei ungültig.');
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
+}
+
+// --- Eingabe: Enter-Taste ---
+document.getElementById('manual-input').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    addItem(e.target.value, document.getElementById('store-select').value);
+    e.target.value = '';
+  }
+});
+
+// --- Mikrofon / Spracheingabe ---
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+const micBtn = document.getElementById('mic-btn');
+if (SpeechRecognition) {
+  const recognition = new SpeechRecognition();
+  recognition.lang = 'de-DE';
+  recognition.continuous = false;
+  recognition.interimResults = false;
+
+  recognition.onresult = (event) => {
+    const transcript = event.results[0][0].transcript;
+    addItem(transcript, document.getElementById('store-select').value);
+  };
+  recognition.onerror = () => { micBtn.classList.remove('bg-red-600'); micBtn.classList.add('bg-teal-600'); };
+  recognition.onend = () => { micBtn.classList.remove('bg-red-600'); micBtn.classList.add('bg-teal-600'); };
+
+  micBtn.addEventListener('click', () => {
+    micBtn.classList.remove('bg-teal-600');
+    micBtn.classList.add('bg-red-600');
+    recognition.start();
+  });
+} else {
+  micBtn.addEventListener('click', () => alert('Spracheingabe wird von diesem Browser nicht unterstützt.'));
+}
+
+loadData();
+renderShoppingList();
+</script>
 </body>
 </html>
