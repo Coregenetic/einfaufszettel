@@ -22,21 +22,17 @@
             -webkit-tap-highlight-color: transparent;
         }
         
-        /* Animationen für flüssiges Erlebnis */
         @keyframes pulse-ring {
             0% { transform: scale(0.8); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
             70% { transform: scale(1); box-shadow: 0 0 0 15px rgba(239, 68, 68, 0); }
             100% { transform: scale(0.8); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
         }
         .listening { animation: pulse-ring 2s infinite; background-color: #ef4444 !important; color: white !important; }
-        
         .fade-in { animation: fadeIn 0.2s ease-out; }
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(-5px); }
             to { opacity: 1; transform: translateY(0); }
         }
-        
-        /* Checkbox Styling */
         .custom-checkbox:checked + div { background-color: #10b981; border-color: #10b981; }
         .custom-checkbox:checked + div svg { display: block; }
         
@@ -51,7 +47,6 @@
         #settings-panel { transform: translateX(100%); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
         #settings-panel.open { transform: translateX(0); }
         
-        /* Scrollbar ausblenden aber scrollen erlauben */
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
@@ -64,7 +59,6 @@
         <!-- VIEW 1: EINKAUFSZETTEL (Hauptansicht)          -->
         <!-- ============================================== -->
         <div id="view-shopping" class="view active">
-            <!-- Header (Kompakt und sauber) -->
             <header class="bg-teal-600 text-white pt-6 pb-4 px-5 z-10 flex-shrink-0 flex justify-between items-center shadow-md">
                 <div class="flex-1 min-w-0">
                     <h1 class="text-xl font-bold truncate pr-2" id="current-list-title">Lade...</h1>
@@ -75,10 +69,8 @@
                 </button>
             </header>
 
-            <!-- Main Content Area (Die Liste) -->
             <main class="flex-1 overflow-y-auto no-scrollbar p-4 relative bg-gray-100/50">
                 <div id="shopping-list" class="space-y-4 pb-4"></div>
-                
                 <div id="empty-state" class="flex flex-col items-center justify-center h-full text-gray-400 mt-10 absolute inset-0 pointer-events-none">
                     <i class="ph ph-shopping-bag text-6xl mb-3 text-gray-300"></i>
                     <p class="text-center font-medium">Dein Zettel ist leer.<br><span class="text-sm font-normal">Tippe auf das Mikrofon!</span></p>
@@ -86,8 +78,6 @@
             </main>
 
             <div class="bg-white border-t border-gray-200 px-4 py-3 shadow-[0_-5px_15px_rgba(0,0,0,0.03)] z-20 flex-shrink-0">
-                
-                <!-- Status und Store Selector in einer Reihe -->
                 <div class="flex justify-between items-end mb-2">
                     <div id="status-text" class="text-xs text-gray-400 font-medium h-4 truncate"></div>
                     <select id="store-select" onchange="UIModule.updateStoreSelectUI()" class="bg-gray-100 text-gray-700 border-none text-xs font-bold rounded-lg py-1 px-2 focus:ring-0 cursor-pointer outline-none transition-colors">
@@ -101,8 +91,6 @@
                         <option value="Baumarkt">🔨 Baumarkt</option>
                     </select>
                 </div>
-
-                <!-- Input und Buttons -->
                 <div class="flex items-center gap-3">
                     <div class="relative flex-1">
                         <input type="text" id="manual-input" placeholder="Artikel tippen..." 
@@ -118,21 +106,20 @@
             </div>
         </div>
 
+        <!-- ============================================== -->
+        <!-- VIEW 2: LISTEN & ARCHIV                        -->
+        <!-- ============================================== -->
         <div id="view-lists" class="view h-full w-full bg-gray-50">
             <header class="bg-white pt-6 pb-4 px-5 border-b shadow-sm flex-shrink-0 flex justify-between items-center">
                 <h1 class="text-xl font-bold text-gray-800">Listen & Archiv</h1>
-                <!-- HIER ist jetzt der Einstellungs-Button, sauber aufgeräumt -->
                 <button onclick="UIModule.openSettings()" class="bg-gray-100 text-gray-600 hover:text-teal-600 rounded-full p-2.5 transition">
                     <i class="ph ph-gear-six text-xl"></i>
                 </button>
             </header>
 
             <main class="flex-1 overflow-y-auto no-scrollbar p-5">
-                <!-- Aktive Listen -->
                 <h2 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 ml-1">Aktive Einkäufe</h2>
                 <ul id="lists-container" class="space-y-3 mb-8"></ul>
-                
-                <!-- Neue Liste -->
                 <div class="bg-white p-4 rounded-2xl shadow-sm mb-8">
                     <h3 class="text-sm font-bold text-gray-600 mb-3">Neue Liste erstellen</h3>
                     <div class="flex gap-2">
@@ -140,17 +127,14 @@
                         <button onclick="DatabaseModule.createNewList()" class="bg-teal-600 text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-teal-700 transition">Neu</button>
                     </div>
                 </div>
-
-                <!-- Archiv -->
                 <h2 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 ml-1">Erledigt (Archiv)</h2>
                 <ul id="archive-container" class="space-y-2 mb-6 opacity-70"></ul>
             </main>
         </div>
 
+        <!-- EINSTELLUNGEN OVERLAY -->
         <div id="settings-overlay" class="absolute inset-0 bg-gray-900/40 z-50 flex justify-end">
-            <!-- Clickaway -->
             <div class="absolute inset-0" onclick="UIModule.closeSettings()"></div>
-            
             <div id="settings-panel" class="relative w-[85%] max-w-[320px] bg-gray-50 h-full shadow-2xl flex flex-col z-10">
                 <header class="bg-white p-5 border-b flex-shrink-0 flex justify-between items-center">
                     <h2 class="text-lg font-bold text-gray-800">Einstellungen</h2>
@@ -158,34 +142,11 @@
                         <i class="ph ph-x text-xl"></i>
                     </button>
                 </header>
-
                 <main class="flex-1 overflow-y-auto p-5">
-                    
-                    <!-- PWA Install -->
-                    <div id="install-container" class="hidden mb-6 bg-teal-600 text-white rounded-2xl p-4 shadow-sm flex-col gap-3">
-                        <div>
-                            <h3 class="font-bold text-sm">App installieren</h3>
-                            <p class="text-xs text-teal-100 mt-1">Für ein echtes App-Gefühl</p>
-                        </div>
-                        <button id="install-btn" class="w-full bg-white text-teal-600 py-2 rounded-xl text-sm font-bold shadow-sm">Zum Homescreen</button>
-                    </div>
-
-                    <!-- Git Sync Info -->
-                    <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 ml-1">Cloud Sync (Demnächst)</h3>
-                    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm mb-6 p-4">
-                        <p class="text-xs text-gray-500 mb-3">Die Github-Datenbankverbindung bereiten wir im nächsten Schritt vor.</p>
-                        <div class="space-y-3">
-                            <input type="password" id="git-token" class="w-full bg-gray-50 border border-gray-200 rounded-lg py-2 px-3 text-sm" placeholder="GitHub PAT Token">
-                            <input type="text" id="git-repo" class="w-full bg-gray-50 border border-gray-200 rounded-lg py-2 px-3 text-sm" placeholder="User/Repository">
-                            <button onclick="DatabaseModule.saveGitConfig()" class="w-full bg-gray-800 text-white py-2 rounded-lg text-sm font-bold hover:bg-gray-700">Speichern</button>
-                        </div>
-                    </div>
-
-                    <!-- System -->
                     <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 ml-1">System</h3>
                     <div class="bg-white rounded-2xl border border-gray-100 shadow-sm mb-6">
                         <div class="p-3 border-b border-gray-50 flex items-center justify-between">
-                            <span class="text-gray-700 text-sm font-medium ml-1">Spracheingabe</span>
+                            <span class="text-gray-700 text-sm font-medium ml-1">Sprache</span>
                             <select id="lang-select" onchange="DatabaseModule.saveSettings()" class="bg-gray-100 border-none text-sm font-medium rounded-lg py-1 px-2 outline-none">
                                 <option value="de-DE">DE</option>
                                 <option value="en-US">EN</option>
@@ -200,11 +161,11 @@
             </div>
         </div>
 
+        <!-- NAVIGATION TAB BAR -->
         <nav class="bg-white border-t border-gray-200 flex pb-safe flex-shrink-0 z-30 shadow-[0_-5px_15px_-3px_rgba(0,0,0,0.05)]">
             <button onclick="UIModule.switchTab('view-shopping')" id="tab-view-shopping" class="tab-btn flex-1 py-3.5 flex flex-col items-center gap-1 text-teal-600 transition relative">
                 <i class="ph ph-shopping-cart text-2xl"></i>
                 <span class="text-[10px] font-bold">Einkauf</span>
-                <!-- Aktiver Tab Indikator -->
                 <div class="absolute top-0 w-1/3 h-1 bg-teal-600 rounded-b-full indicator"></div>
             </button>
             <button onclick="UIModule.switchTab('view-lists')" id="tab-view-lists" class="tab-btn flex-1 py-3.5 flex flex-col items-center gap-1 text-gray-400 hover:text-teal-500 transition relative">
@@ -213,471 +174,117 @@
                 <div class="absolute top-0 w-1/3 h-1 bg-transparent rounded-b-full indicator"></div>
             </button>
         </nav>
-
     </div>
 
     <script>
-        // Farb- und Icon-Definitionen für die Supermärkte
         const STORE_BRANDS = {
-            "Allgemein": { color: "teal", hex: "#0d9488", bg: "bg-teal-50", text: "text-teal-700", border: "border-teal-100", btn: "bg-teal-600" },
-            "Aldi":      { color: "blue", hex: "#2563eb", bg: "bg-blue-50", text: "text-blue-700", border: "border-blue-100", btn: "bg-blue-600" },
-            "Lidl":      { color: "yellow", hex: "#eab308", bg: "bg-yellow-50", text: "text-yellow-700", border: "border-yellow-100", btn: "bg-yellow-500" },
-            "Rewe":      { color: "red", hex: "#dc2626", bg: "bg-red-50", text: "text-red-700", border: "border-red-100", btn: "bg-red-600" },
-            "Edeka":     { color: "yellow", hex: "#ca8a04", bg: "bg-yellow-50", text: "text-yellow-700", border: "border-yellow-100", btn: "bg-yellow-500" },
-            "Kaufland":  { color: "red", hex: "#ef4444", bg: "bg-red-50", text: "text-red-700", border: "border-red-100", btn: "bg-red-600" },
-            "Drogerie":  { color: "pink", hex: "#ec4899", bg: "bg-pink-50", text: "text-pink-700", border: "border-pink-100", btn: "bg-pink-500" },
-            "Baumarkt":  { color: "orange", hex: "#f97316", bg: "bg-orange-50", text: "text-orange-700", border: "border-orange-100", btn: "bg-orange-500" }
+            "Allgemein": { color: "teal", bg: "bg-teal-50", text: "text-teal-700", border: "border-teal-100", btn: "bg-teal-600" },
+            "Aldi":      { color: "blue", bg: "bg-blue-50", text: "text-blue-700", border: "border-blue-100", btn: "bg-blue-600" },
+            "Lidl":      { color: "yellow", bg: "bg-yellow-50", text: "text-yellow-700", border: "border-yellow-100", btn: "bg-yellow-500" },
+            "Rewe":      { color: "red", bg: "bg-red-50", text: "text-red-700", border: "border-red-100", btn: "bg-red-600" },
+            "Edeka":     { color: "yellow", bg: "bg-yellow-50", text: "text-yellow-700", border: "border-yellow-100", btn: "bg-yellow-500" },
+            "Kaufland":  { color: "red", bg: "bg-red-50", text: "text-red-700", border: "border-red-100", btn: "bg-red-600" },
+            "Drogerie":  { color: "pink", bg: "bg-pink-50", text: "text-pink-700", border: "border-pink-100", btn: "bg-pink-500" },
+            "Baumarkt":  { color: "orange", bg: "bg-orange-50", text: "text-orange-700", border: "border-orange-100", btn: "bg-orange-500" }
         };
 
         const DatabaseModule = {
-            data: {
-                currentListId: 'list_1',
-                settings: { lang: 'de-DE', gitToken: '', gitRepo: '' },
-                lists: [ { id: 'list_1', name: 'Wocheneinkauf', items: [], archived: false, date: Date.now() } ]
-            },
-
-            loadData: function() {
-                const saved = localStorage.getItem('einkaufszettel_v4');
-                if (saved) {
-                    this.data = JSON.parse(saved);
-                } else {
-                    const old = localStorage.getItem('einkaufszettel_v3');
-                    if (old) { this.data = JSON.parse(old); localStorage.removeItem('einkaufszettel_v3'); }
-                    this.saveData();
-                }
-            },
-
-            saveData: function() {
-                localStorage.setItem('einkaufszettel_v4', JSON.stringify(this.data));
-            },
-
-            getCurrentList: function() {
-                return this.data.lists.find(l => l.id === this.data.currentListId) || this.data.lists[0];
-            },
-
-            createNewList: function() {
-                const input = document.getElementById('new-list-input');
-                const name = input.value.trim() || 'Neue Liste';
-                
-                const newList = { id: 'list_' + Date.now(), name: name, items: [], archived: false, date: Date.now() };
-                this.data.lists.push(newList);
-                this.data.currentListId = newList.id;
-                input.value = '';
-                
-                this.saveData();
-                UIModule.updateAll();
-                UIModule.switchTab('view-shopping');
-            },
-
-            archiveCurrentList: function() {
-                const list = this.getCurrentList();
-                if(list.items.length === 0) return alert("Leere Listen können nicht abgeschlossen werden.");
-                if(confirm(`Möchtest du '${list.name}' ins Archiv verschieben?`)) {
-                    list.archived = true;
-                    let nextActive = this.data.lists.find(l => !l.archived);
-                    if(!nextActive) {
-                        nextActive = { id: 'list_' + Date.now(), name: 'Neue Liste', items: [], archived: false, date: Date.now() };
-                        this.data.lists.push(nextActive);
-                    }
-                    this.data.currentListId = nextActive.id;
-                    this.saveData();
-                    UIModule.updateAll();
-                    UIModule.switchTab('view-lists');
-                }
-            },
-
-            deleteList: function(id) {
-                if (confirm('Liste wirklich löschen?')) {
-                    this.data.lists = this.data.lists.filter(l => l.id !== id);
-                    if (this.data.currentListId === id) {
-                        const next = this.data.lists.find(l => !l.archived) || this.data.lists[0];
-                        this.data.currentListId = next ? next.id : null;
-                    }
-                    this.saveData();
-                    UIModule.updateAll();
-                }
-            },
-
-            saveSettings: function() {
-                this.data.settings.lang = document.getElementById('lang-select').value;
-                if(SpeechModule.recognition) SpeechModule.recognition.lang = this.data.settings.lang;
-                this.saveData();
-            },
-
-            saveGitConfig: function() {
-                this.data.settings.gitToken = document.getElementById('git-token').value.trim();
-                this.data.settings.gitRepo = document.getElementById('git-repo').value.trim();
-                this.saveData();
-                alert("Git Konfiguration gespeichert!");
-            },
-
-            clearAllData: function() {
-                if (confirm('ACHTUNG: Willst du wirklich ALLE Daten löschen?')) {
-                    localStorage.clear();
-                    location.reload(); 
-                }
-            }
+            data: { currentListId: 'list_1', settings: { lang: 'de-DE' }, lists: [ { id: 'list_1', name: 'Go Gurls Liste', items: [], archived: false, date: Date.now() } ] },
+            loadData: function() { const saved = localStorage.getItem('einkaufszettel_v4'); if (saved) this.data = JSON.parse(saved); this.saveData(); },
+            saveData: function() { localStorage.setItem('einkaufszettel_v4', JSON.stringify(this.data)); },
+            getCurrentList: function() { return this.data.lists.find(l => l.id === this.data.currentListId) || this.data.lists[0]; },
+            createNewList: function() { const input = document.getElementById('new-list-input'); const name = input.value.trim() || 'Neue Liste'; const newList = { id: 'list_' + Date.now(), name: name, items: [], archived: false, date: Date.now() }; this.data.lists.push(newList); this.data.currentListId = newList.id; input.value = ''; this.saveData(); UIModule.updateAll(); UIModule.switchTab('view-shopping'); },
+            archiveCurrentList: function() { const list = this.getCurrentList(); if(confirm(`'${list.name}' ins Archiv verschieben?`)) { list.archived = true; this.data.currentListId = this.data.lists.find(l => !l.archived)?.id || null; this.saveData(); UIModule.updateAll(); } },
+            saveSettings: function() { this.data.settings.lang = document.getElementById('lang-select').value; if(SpeechModule.recognition) SpeechModule.recognition.lang = this.data.settings.lang; this.saveData(); },
+            clearAllData: function() { if(confirm('Alles löschen?')) { localStorage.clear(); location.reload(); } }
         };
 
         const UIModule = {
-            updateAll: function() {
-                this.updateShoppingUI();
-                this.updateListsUI();
-                this.updateStoreSelectUI();
-            },
-
+            updateAll: function() { this.updateShoppingUI(); this.updateListsUI(); this.updateStoreSelectUI(); },
             updateShoppingUI: function() {
                 const currentList = DatabaseModule.getCurrentList();
-                if(!currentList) return;
-
                 document.getElementById('current-list-title').textContent = currentList.name;
-                
                 const listEl = document.getElementById('shopping-list');
                 const emptyEl = document.getElementById('empty-state');
                 listEl.innerHTML = '';
-                
-                if (currentList.items.length === 0) {
-                    emptyEl.style.display = 'flex';
-                } else {
+                if (currentList.items.length === 0) emptyEl.style.display = 'flex';
+                else {
                     emptyEl.style.display = 'none';
-                    
                     const groups = {};
-                    currentList.items.forEach(item => {
-                        const store = item.store || 'Allgemein';
-                        if (!groups[store]) groups[store] = [];
-                        groups[store].push(item);
-                    });
-
-                    // Saubereres Card Design
+                    currentList.items.forEach(item => { const store = item.store || 'Allgemein'; if (!groups[store]) groups[store] = []; groups[store].push(item); });
                     Object.keys(groups).sort().forEach(storeName => {
                         const brand = STORE_BRANDS[storeName] || STORE_BRANDS['Allgemein'];
-                        const sortedItems = groups[storeName].sort((a, b) => a.checked - b.checked);
-
                         const card = document.createElement('div');
-                        // Extrem weiche, helle Karten
-                        card.className = `mb-4 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden`;
-                        
-                        // Dezenter Header
-                        const header = document.createElement('div');
-                        header.className = `${brand.bg} px-4 py-2 border-b border-gray-50 flex items-center justify-between`;
-                        header.innerHTML = `
-                            <span class="text-xs font-bold ${brand.text} uppercase tracking-wider">${storeName}</span>
-                            <span class="text-[10px] text-gray-400 font-medium">${sortedItems.length} Artikel</span>
-                        `;
-                        card.appendChild(header);
-
+                        card.className = `bg-white rounded-2xl shadow-sm border ${brand.border} overflow-hidden mb-4`;
+                        card.innerHTML = `<div class="${brand.bg} px-4 py-2 border-b border-gray-100"><span class="text-xs font-bold ${brand.text} uppercase tracking-wider">${storeName}</span></div>`;
                         const ul = document.createElement('ul');
-                        ul.className = "divide-y divide-gray-50";
-
-                        sortedItems.forEach(item => {
+                        groups[storeName].sort((a,b)=>a.checked-b.checked).forEach(item => {
                             const li = document.createElement('li');
-                            // Reduziertes Padding für kompaktere Darstellung
-                            li.className = `fade-in flex items-center justify-between px-4 py-2.5 ${item.checked ? 'opacity-50 bg-gray-50' : 'bg-white'} transition-all`;
-                            
-                            let qtyHtml = '';
-                            if (item.quantity) {
-                                const qClass = item.quantityConfirmed ? `${brand.bg} ${brand.text} border-${brand.color}-200` : 'bg-gray-100 text-gray-600 border-gray-200';
-                                qtyHtml = `
-                                    <div onclick="InputModule.toggleQuantity(event, '${item.id}')" 
-                                         class="mr-3 px-2 py-0.5 rounded-lg border text-xs font-bold flex items-center cursor-pointer transition-all active:scale-95 ${qClass}">
-                                        ${item.quantityConfirmed ? '✓ ' : ''}${item.quantity}
-                                    </div>
-                                `;
-                            }
-
+                            li.className = `flex items-center justify-between px-4 py-3 ${item.checked ? 'opacity-50 bg-gray-50' : 'bg-white'}`;
                             li.innerHTML = `
-                                <div class="flex items-center flex-1 min-w-0 pr-2">
-                                    <label class="flex items-center justify-center cursor-pointer mr-3">
-                                        <div class="relative flex items-center justify-center">
-                                            <input type="checkbox" class="custom-checkbox opacity-0 absolute h-0 w-0" ${item.checked ? 'checked' : ''} onchange="InputModule.toggleItem('${item.id}')">
-                                            <div class="w-5 h-5 border-2 border-gray-300 rounded-full flex items-center justify-center transition-colors">
-                                                <svg class="w-3 h-3 text-white hidden pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
-                                            </div>
-                                        </div>
-                                    </label>
-                                    ${qtyHtml}
-                                    <span class="text-base truncate ${item.checked ? 'line-through text-gray-400' : 'text-gray-800'} cursor-pointer" onclick="InputModule.toggleItem('${item.id}')">${item.text}</span>
+                                <div class="flex items-center flex-1">
+                                    <input type="checkbox" class="custom-checkbox opacity-0 absolute" ${item.checked ? 'checked' : ''} onchange="InputModule.toggleItem('${item.id}')">
+                                    <div class="w-5 h-5 border-2 border-gray-300 rounded-full flex items-center justify-center mr-3"><svg class="w-3 h-3 text-white hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path d="M5 13l4 4L19 7"/></svg></div>
+                                    <span class="text-base ${item.checked ? 'line-through text-gray-400' : 'text-gray-800'}">${item.quantity ? item.quantity + ' ' : ''}${item.text}</span>
                                 </div>
-                                <button onclick="InputModule.deleteItem('${item.id}')" class="text-gray-300 hover:text-red-500 py-2 pl-2 focus:outline-none flex-shrink-0">
-                                    <i class="ph ph-x text-lg"></i>
-                                </button>
+                                <button onclick="InputModule.deleteItem('${item.id}')" class="text-gray-300 hover:text-red-500"><i class="ph ph-x"></i></button>
                             `;
                             ul.appendChild(li);
                         });
-                        
-                        card.appendChild(ul);
-                        listEl.appendChild(card);
+                        card.appendChild(ul); listEl.appendChild(card);
                     });
                 }
-
-                const openItems = currentList.items.filter(i => !i.checked).length;
-                document.getElementById('item-count').textContent = `${openItems} offen`;
             },
-
             updateListsUI: function() {
                 const activeCont = document.getElementById('lists-container');
-                const archiveCont = document.getElementById('archive-container');
-                activeCont.innerHTML = ''; archiveCont.innerHTML = '';
-                
-                DatabaseModule.data.lists.forEach(list => {
-                    const isActive = list.id === DatabaseModule.data.currentListId;
+                activeCont.innerHTML = '';
+                DatabaseModule.data.lists.filter(l => !l.archived).forEach(list => {
                     const li = document.createElement('li');
-                    
-                    if (list.archived) {
-                        const dateStr = new Date(list.date).toLocaleDateString('de-DE', {day:'2-digit', month:'2-digit'});
-                        li.className = "flex items-center justify-between p-3 rounded-xl bg-gray-100 border border-gray-200";
-                        li.innerHTML = `
-                            <div class="flex-1 text-gray-500 text-sm flex items-center gap-2">
-                                <i class="ph ph-archive"></i><span class="line-through">${list.name}</span> <span class="text-xs text-gray-400">(${dateStr})</span>
-                            </div>
-                            <button onclick="DatabaseModule.deleteList('${list.id}')" class="text-gray-400 hover:text-red-500 p-1">
-                                <i class="ph ph-trash"></i>
-                            </button>
-                        `;
-                        archiveCont.appendChild(li);
-                    } else {
-                        li.className = `flex items-center justify-between p-3.5 rounded-2xl cursor-pointer border shadow-sm transition-all ${isActive ? 'bg-teal-50 border-teal-200' : 'bg-white border-gray-100'}`;
-                        li.innerHTML = `
-                            <div class="flex-1 font-semibold text-[15px] flex items-center gap-3 ${isActive ? 'text-teal-700' : 'text-gray-700'}" onclick="UIModule.selectList('${list.id}')">
-                                <i class="ph ${isActive ? 'ph-check-circle text-teal-500' : 'ph-list text-gray-400'} text-xl"></i>
-                                ${list.name} 
-                                <span class="text-xs font-normal bg-white px-2 py-0.5 rounded-full border border-gray-100">${list.items.length}</span>
-                            </div>
-                            ${DatabaseModule.data.lists.filter(l=>!l.archived).length > 1 ? `
-                            <button onclick="DatabaseModule.deleteList('${list.id}')" class="text-gray-400 hover:text-red-500 p-2">
-                                <i class="ph ph-trash text-lg"></i>
-                            </button>
-                            ` : ''}
-                        `;
-                        activeCont.appendChild(li);
-                    }
+                    li.className = `p-4 rounded-2xl border cursor-pointer ${list.id === DatabaseModule.data.currentListId ? 'bg-teal-50 border-teal-200' : 'bg-white border-gray-100'}`;
+                    li.innerHTML = `<div class="font-bold" onclick="UIModule.selectList('${list.id}')">${list.name} (${list.items.length})</div>`;
+                    activeCont.appendChild(li);
                 });
             },
-
-            openSettings: function() {
-                document.getElementById('lang-select').value = DatabaseModule.data.settings.lang || 'de-DE';
-                document.getElementById('git-token').value = DatabaseModule.data.settings.gitToken || '';
-                document.getElementById('git-repo').value = DatabaseModule.data.settings.gitRepo || '';
-                
-                document.getElementById('settings-overlay').classList.add('open');
-                setTimeout(() => document.getElementById('settings-panel').classList.add('open'), 10);
-            },
-
-            closeSettings: function() {
-                document.getElementById('settings-panel').classList.remove('open');
-                setTimeout(() => document.getElementById('settings-overlay').classList.remove('open'), 300);
-            },
-
+            openSettings: function() { document.getElementById('settings-overlay').classList.add('open'); setTimeout(() => document.getElementById('settings-panel').classList.add('open'), 10); },
+            closeSettings: function() { document.getElementById('settings-panel').classList.remove('open'); setTimeout(() => document.getElementById('settings-overlay').classList.remove('open'), 300); },
             updateStoreSelectUI: function() {
-                const select = document.getElementById('store-select');
-                const storeName = select.value;
-                const brand = STORE_BRANDS[storeName] || STORE_BRANDS['Allgemein'];
-                
-                const addBtn = document.getElementById('add-btn');
-                const micBtn = document.getElementById('mic-btn');
-                
-                addBtn.className = `absolute right-1.5 top-1.5 bottom-1.5 ${brand.btn} text-white rounded-xl w-10 flex items-center justify-center transition-colors`;
-                micBtn.className = `w-12 h-12 ${brand.bg} ${brand.text} rounded-2xl flex items-center justify-center shadow-sm transition-all focus:outline-none flex-shrink-0 border ${brand.border}`;
+                const brand = STORE_BRANDS[document.getElementById('store-select').value];
+                document.getElementById('add-btn').className = `absolute right-1.5 top-1.5 bottom-1.5 ${brand.btn} text-white rounded-xl w-10 flex items-center justify-center transition-colors`;
             },
-
-            selectList: function(id) {
-                DatabaseModule.data.currentListId = id;
-                DatabaseModule.saveData();
-                this.updateAll();
-                this.switchTab('view-shopping');
-            },
-
+            selectList: function(id) { DatabaseModule.data.currentListId = id; DatabaseModule.saveData(); this.updateAll(); this.switchTab('view-shopping'); },
             switchTab: function(viewId) {
                 document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
                 document.getElementById(viewId).classList.add('active');
-                
-                document.querySelectorAll('.tab-btn').forEach(btn => {
-                    btn.classList.remove('text-teal-600');
-                    btn.classList.add('text-gray-400');
-                    btn.querySelector('.indicator').classList.replace('bg-teal-600', 'bg-transparent');
-                });
-                
+                document.querySelectorAll('.tab-btn').forEach(btn => { btn.classList.remove('text-teal-600'); btn.querySelector('.indicator').classList.replace('bg-teal-600', 'bg-transparent'); });
                 const activeBtn = document.getElementById('tab-' + viewId);
-                activeBtn.classList.remove('text-gray-400');
                 activeBtn.classList.add('text-teal-600');
                 activeBtn.querySelector('.indicator').classList.replace('bg-transparent', 'bg-teal-600');
-
-                if (viewId === 'view-lists') this.updateListsUI();
             }
         };
 
         const InputModule = {
-            parseInput: function(input) {
-                let text = input.trim().replace(/\.$/, '');
-                let quantity = '';
-                
-                const numMap = { "ein": 1, "eine": 1, "einen": 1, "zwei": 2, "drei": 3, "vier": 4, "fünf": 5, "sechs": 6, "sieben": 7, "acht": 8, "neun": 9, "zehn": 10 };
-                const words = text.split(' ');
-                if (words.length > 1 && numMap[words[0].toLowerCase()]) {
-                    words[0] = numMap[words[0].toLowerCase()];
-                    text = words.join(' ');
-                }
-
-                const match = text.match(/^(\d+(?:[.,]\d+)?\s*(?:liter|l|kilo|kg|gramm|g|packungen|packung|stück|flaschen|flasche|dosen|dose|gläser|glas|x)?)\s+(.*)/i);
-                if (match) {
-                    quantity = match[1].trim();
-                    text = match[2].trim();
-                }
-                
-                return { text: text.charAt(0).toUpperCase() + text.slice(1), quantity: quantity };
-            },
-
             addItem: function(text) {
-                if (!text.trim()) return;
-                const parsed = this.parseInput(text);
-                const list = DatabaseModule.getCurrentList();
-                const store = document.getElementById('store-select').value;
-
-                list.items.push({
-                    id: Date.now().toString(),
-                    text: parsed.text,
-                    quantity: parsed.quantity,
-                    quantityConfirmed: false,
-                    checked: false,
-                    store: store
-                });
-                
-                DatabaseModule.saveData();
-                UIModule.updateShoppingUI();
-                document.getElementById('manual-input').value = ''; 
+                if(!text.trim()) return;
+                const currentList = DatabaseModule.getCurrentList();
+                currentList.items.push({ id: Date.now().toString(), text: text, store: document.getElementById('store-select').value, checked: false });
+                DatabaseModule.saveData(); UIModule.updateAll(); document.getElementById('manual-input').value = '';
             },
-
-            toggleItem: function(id) {
-                const list = DatabaseModule.getCurrentList();
-                const item = list.items.find(i => i.id === id);
-                if (item) item.checked = !item.checked;
-                DatabaseModule.saveData();
-                UIModule.updateShoppingUI();
-            },
-
-            toggleQuantity: function(event, id) {
-                event.stopPropagation();
-                const list = DatabaseModule.getCurrentList();
-                const item = list.items.find(i => i.id === id);
-                if (item) item.quantityConfirmed = !item.quantityConfirmed;
-                DatabaseModule.saveData();
-                UIModule.updateShoppingUI();
-            },
-
-            deleteItem: function(id) {
-                const list = DatabaseModule.getCurrentList();
-                list.items = list.items.filter(item => item.id !== id);
-                DatabaseModule.saveData();
-                UIModule.updateShoppingUI();
-            }
+            toggleItem: function(id) { const item = DatabaseModule.getCurrentList().items.find(i => i.id === id); if(item) item.checked = !item.checked; DatabaseModule.saveData(); UIModule.updateShoppingUI(); },
+            deleteItem: function(id) { const list = DatabaseModule.getCurrentList(); list.items = list.items.filter(i => i.id !== id); DatabaseModule.saveData(); UIModule.updateAll(); }
         };
 
         const SpeechModule = {
-            recognition: null,
-            isListening: false,
-
             init: function() {
                 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-                if (!SR) return document.getElementById('mic-btn').style.display = 'none';
-
-                this.recognition = new SR();
-                this.recognition.continuous = false;
-                this.recognition.interimResults = false;
-
-                this.recognition.onstart = () => {
-                    this.isListening = true;
-                    document.getElementById('mic-btn').classList.add('listening');
-                    document.getElementById('mic-icon').classList.replace('ph-microphone', 'ph-microphone-stage');
-                    this.setStatus("Ich höre zu...", 'text-teal-600');
-                };
-
-                this.recognition.onresult = (event) => {
-                    const transcript = event.results[0][0].transcript;
-                    InputModule.addItem(transcript);
-                    this.setStatus(`✓ "${transcript}"`, 'text-gray-500');
-                    setTimeout(() => this.clearStatus(), 2000);
-                };
-
-                this.recognition.onerror = () => {
-                    this.setStatus("Fehler beim Hören.", 'text-red-500');
-                    this.stop();
-                    setTimeout(() => this.clearStatus(), 3000);
-                };
-
-                this.recognition.onend = () => this.stop();
-
-                document.getElementById('mic-btn').addEventListener('click', () => {
-                    if (this.isListening) this.recognition.stop();
-                    else { 
-                        this.recognition.lang = DatabaseModule.data.settings.lang;
-                        this.recognition.start(); 
-                    }
-                });
-            },
-
-            stop: function() {
-                this.isListening = false;
-                document.getElementById('mic-btn').classList.remove('listening');
-                document.getElementById('mic-icon').classList.replace('ph-microphone-stage', 'ph-microphone');
-                if(document.getElementById('status-text').textContent.includes("höre")) this.clearStatus();
-            },
-
-            setStatus: function(msg, color) {
-                const el = document.getElementById('status-text');
-                el.textContent = msg; el.className = `text-xs font-medium h-4 truncate ${color}`;
-            },
-
-            clearStatus: function() {
-                if(!this.isListening) document.getElementById('status-text').textContent = "";
-            }
-        };
-
-        const PWAModule = {
-            init: function() {
-                const manifest = {
-                    name: "Einkaufszettel", short_name: "Einkauf", display: "standalone",
-                    background_color: "#111827", theme_color: "#0d9488", start_url: location.href,
-                    icons: [{
-                        src: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNTYgMjU2Ij48cmVjdCB3aWR0aD0iMjU2IiBoZWlnaHQ9IjI1NiIgZmlsbD0iIzBkOTQ4OCIvPjxjaXJjbGUgY3g9Ijg4IiBjeT0iMjE2IiByPSIxNiIgZmlsbD0id2hpdGUiLz48Y2lyY2xlIGN4PSIxNjgiIGN5PSIyMTYiIHI9IjE2IiBmaWxsPSJ3aGl0ZSIvPjxwYXRoIGQ9Ik0yMi45LDM4LjFBMjQsMjQsMCwwLDAsMTYsMjRIOEE4LDgsMCwwLDEsOCw4aDhBNDAsNDAsMCwwLDEsNDcuMSwzMy42TDU3LjMsNTRIMjI0YTE2LjEsMTYuMSwwLDAsMSwxNC43LDIyLjFsLTI0LDY0QTE2LDE2LDAsMCwxLDIwMCwxNTJIODQuN0wzOC40LDQ3WiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBzdHJva2Utd2lkdGg9IjE2Ii8+PC9zdmc+",
-                        sizes: "512x512", type: "image/svg+xml", purpose: "any maskable"
-                    }]
-                };
-                document.getElementById('manifest-link').href = URL.createObjectURL(new Blob([JSON.stringify(manifest)], {type: 'application/json'}));
-
-                if ('serviceWorker' in navigator) {
-                    const swCode = `self.addEventListener('install', e => self.skipWaiting()); self.addEventListener('activate', e => e.waitUntil(clients.claim())); self.addEventListener('fetch', e => {});`;
-                    navigator.serviceWorker.register(URL.createObjectURL(new Blob([swCode], {type: 'application/javascript'}))).catch(()=>{});
+                if(SR) {
+                    this.recognition = new SR();
+                    this.recognition.onresult = (e) => InputModule.addItem(e.results[0][0].transcript);
+                    document.getElementById('mic-btn').addEventListener('click', () => this.recognition.start());
                 }
-
-                let deferredPrompt;
-                window.addEventListener('beforeinstallprompt', (e) => {
-                    e.preventDefault(); deferredPrompt = e;
-                    document.getElementById('install-container').style.display = 'flex';
-                });
-
-                document.getElementById('install-btn').addEventListener('click', async () => {
-                    if (deferredPrompt) {
-                        deferredPrompt.prompt();
-                        const { outcome } = await deferredPrompt.userChoice;
-                        if (outcome === 'accepted') document.getElementById('install-container').style.display = 'none';
-                        deferredPrompt = null;
-                    }
-                });
             }
         };
 
-        window.onload = function() {
-            DatabaseModule.loadData();
-            SpeechModule.init();
-            PWAModule.init();
-            
-            const manualInput = document.getElementById('manual-input');
-            document.getElementById('add-btn').addEventListener('click', () => InputModule.addItem(manualInput.value));
-            manualInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') InputModule.addItem(manualInput.value); });
-
-            UIModule.updateAll();
-        };
-
+        window.onload = () => { DatabaseModule.loadData(); SpeechModule.init(); UIModule.updateAll(); document.getElementById('add-btn').addEventListener('click', () => InputModule.addItem(document.getElementById('manual-input').value)); };
     </script>
 </body>
 </html>
