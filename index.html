@@ -481,7 +481,7 @@ function addItem(rawText, store) {
 
 function addFavorite(name, store) {
   document.getElementById('manual-input').value = '';
-  addItem(name, store);
+  addItem(name, store || document.getElementById('item-store-select').value);
 }
 
 function openEditItemModal(id) {
@@ -732,7 +732,7 @@ const micBtn = document.getElementById('mic-btn');
 if (SpeechRecognition) {
   const recognition = new SpeechRecognition();
   recognition.lang = 'de-DE'; recognition.continuous = false; recognition.interimResults = false;
-  recognition.onresult = (event) => { addItem(event.results[0][0].transcript, null); };
+  recognition.onresult = (event) => { addItem(event.results[0][0].transcript, document.getElementById('item-store-select').value); };
   const reset = () => { micBtn.classList.remove('bg-red-600'); micBtn.classList.add('bg-[var(--accent)]'); };
   recognition.onerror = reset; recognition.onend = reset;
   micBtn.addEventListener('click', () => {
