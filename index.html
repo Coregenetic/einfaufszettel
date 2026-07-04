@@ -15,14 +15,14 @@
 
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
-    
     <style>
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: #f3f4f6;
+            background-color: #111827;
             -webkit-tap-highlight-color: transparent;
         }
         
+        /* Animationen für flüssiges Erlebnis */
         @keyframes pulse-ring {
             0% { transform: scale(0.8); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
             70% { transform: scale(1); box-shadow: 0 0 0 15px rgba(239, 68, 68, 0); }
@@ -30,240 +30,226 @@
         }
         .listening { animation: pulse-ring 2s infinite; background-color: #ef4444 !important; color: white !important; }
         
-        .fade-in { animation: fadeIn 0.3s ease-in-out; }
+        .fade-in { animation: fadeIn 0.2s ease-out; }
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(-10px); }
+            from { opacity: 0; transform: translateY(-5px); }
             to { opacity: 1; transform: translateY(0); }
         }
         
+        /* Checkbox Styling */
         .custom-checkbox:checked + div { background-color: #10b981; border-color: #10b981; }
         .custom-checkbox:checked + div svg { display: block; }
         
+        /* Views & Layout Fixes für Mobile */
         .view { display: none; }
-        .view.active { display: flex; flex-direction: column; }
+        .view.active { display: flex; flex-direction: column; flex: 1; height: 100%; min-height: 0; }
         .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
         
-        /* Store Brands Transitions */
-        .store-theme-transition { transition: all 0.3s ease; }
+        /* Slide-In Settings Animation */
+        #settings-overlay { opacity: 0; pointer-events: none; transition: opacity 0.3s ease; }
+        #settings-overlay.open { opacity: 1; pointer-events: auto; }
+        #settings-panel { transform: translateX(100%); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        #settings-panel.open { transform: translateX(0); }
+        
+        /* Scrollbar ausblenden aber scrollen erlauben */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
 <body class="text-gray-800 antialiased h-screen w-screen overflow-hidden flex justify-center bg-gray-900">
 
     <div class="max-w-md w-full bg-gray-50 h-full shadow-2xl relative flex flex-col overflow-hidden">
 
-        <!-- VIEW 1: EINKAUFSZETTEL -->
-        <div id="view-shopping" class="view active h-full w-full flex flex-col">
-            <header class="bg-teal-600 text-white p-5 rounded-b-3xl shadow-md z-10 flex-shrink-0 flex justify-between items-center">
-                <div>
-                    <h1 class="text-2xl font-bold flex items-center gap-2" id="current-list-title">Lade...</h1>
-                    <p class="text-teal-100 text-sm mt-1" id="item-count">0 Artikel</p>
+        <!-- ============================================== -->
+        <!-- VIEW 1: EINKAUFSZETTEL (Hauptansicht)          -->
+        <!-- ============================================== -->
+        <div id="view-shopping" class="view active">
+            <!-- Header (Kompakt und sauber) -->
+            <header class="bg-teal-600 text-white pt-6 pb-4 px-5 z-10 flex-shrink-0 flex justify-between items-center shadow-md">
+                <div class="flex-1 min-w-0">
+                    <h1 class="text-xl font-bold truncate pr-2" id="current-list-title">Lade...</h1>
+                    <p class="text-teal-100 text-xs mt-0.5" id="item-count">0 Artikel</p>
                 </div>
-                <button onclick="DatabaseModule.archiveCurrentList()" class="text-teal-100 hover:text-white transition flex flex-col items-center">
-                    <i class="ph ph-archive-box text-2xl"></i>
-                    <span class="text-[9px] uppercase tracking-wider font-bold">Abschließen</span>
+                <button onclick="DatabaseModule.archiveCurrentList()" class="bg-teal-700/50 hover:bg-teal-700 text-white rounded-full p-2.5 transition flex-shrink-0 flex items-center justify-center">
+                    <i class="ph ph-check-circle text-2xl"></i>
                 </button>
             </header>
 
-            <main class="flex-1 overflow-y-auto p-4 relative">
+            <!-- Main Content Area (Die Liste) -->
+            <main class="flex-1 overflow-y-auto no-scrollbar p-4 relative bg-gray-100/50">
                 <div id="shopping-list" class="space-y-4 pb-4"></div>
                 
                 <div id="empty-state" class="flex flex-col items-center justify-center h-full text-gray-400 mt-10 absolute inset-0 pointer-events-none">
-                    <i class="ph ph-basket text-6xl mb-3 text-gray-300"></i>
-                    <p class="text-center">Dein Zettel ist leer.<br>Tippe auf das Mikrofon!</p>
+                    <i class="ph ph-shopping-bag text-6xl mb-3 text-gray-300"></i>
+                    <p class="text-center font-medium">Dein Zettel ist leer.<br><span class="text-sm font-normal">Tippe auf das Mikrofon!</span></p>
                 </div>
             </main>
 
-            <div id="input-container" class="bg-white border-t-4 border-gray-200 p-4 shadow-[0_-10px_15px_-3px_rgba(0,0,0,0.05)] z-20 flex-shrink-0 store-theme-transition">
-                <div class="flex justify-between items-center mb-2 px-1">
-                    <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">Laden:</span>
-                    <select id="store-select" onchange="UIModule.updateInputTheme()" class="bg-gray-100 border-none text-sm font-bold rounded-lg py-1.5 px-3 focus:ring-0 cursor-pointer outline-none shadow-inner">
-                        <option value="Allgemein">Allgemein</option>
-                        <option value="Aldi">Aldi</option>
-                        <option value="Lidl">Lidl</option>
-                        <option value="Rewe">Rewe</option>
-                        <option value="Edeka">Edeka</option>
-                        <option value="Kaufland">Kaufland</option>
-                        <option value="Drogerie">dm / Rossmann</option>
-                        <option value="Baumarkt">Baumarkt</option>
+            <div class="bg-white border-t border-gray-200 px-4 py-3 shadow-[0_-5px_15px_rgba(0,0,0,0.03)] z-20 flex-shrink-0">
+                
+                <!-- Status und Store Selector in einer Reihe -->
+                <div class="flex justify-between items-end mb-2">
+                    <div id="status-text" class="text-xs text-gray-400 font-medium h-4 truncate"></div>
+                    <select id="store-select" onchange="UIModule.updateStoreSelectUI()" class="bg-gray-100 text-gray-700 border-none text-xs font-bold rounded-lg py-1 px-2 focus:ring-0 cursor-pointer outline-none transition-colors">
+                        <option value="Allgemein">🛒 Allgemein</option>
+                        <option value="Aldi">🔵 Aldi</option>
+                        <option value="Lidl">🟡 Lidl</option>
+                        <option value="Rewe">🔴 Rewe</option>
+                        <option value="Edeka">💛 Edeka</option>
+                        <option value="Kaufland">🩸 Kaufland</option>
+                        <option value="Drogerie">🌸 Drogerie</option>
+                        <option value="Baumarkt">🔨 Baumarkt</option>
                     </select>
                 </div>
 
-                <div id="status-text" class="text-center text-sm font-medium text-gray-500 mb-2 h-5 transition-opacity"></div>
-                <div class="flex items-center gap-2">
+                <!-- Input und Buttons -->
+                <div class="flex items-center gap-3">
                     <div class="relative flex-1">
-                        <input type="text" id="manual-input" placeholder="Artikel tippen..." class="w-full bg-gray-100 border-none rounded-full py-3 px-5 pr-12 focus:outline-none focus:ring-2 focus:ring-teal-500 transition-all shadow-inner">
-                        <button id="add-btn" class="absolute right-1 top-1 bottom-1 bg-teal-600 text-white rounded-full w-10 h-10 flex items-center justify-center hover:bg-teal-700 transition-colors">
-                            <i class="ph ph-plus text-xl"></i>
+                        <input type="text" id="manual-input" placeholder="Artikel tippen..." 
+                               class="w-full bg-gray-100 border border-transparent rounded-2xl py-3.5 px-4 pr-12 focus:bg-white focus:border-teal-500 focus:outline-none transition-all text-sm">
+                        <button id="add-btn" class="absolute right-1.5 top-1.5 bottom-1.5 text-white rounded-xl w-10 flex items-center justify-center transition-colors">
+                            <i class="ph ph-plus text-lg"></i>
                         </button>
                     </div>
-                    <button id="mic-btn" class="w-14 h-14 bg-teal-100 text-teal-600 rounded-full flex items-center justify-center shadow-md transition-all hover:bg-teal-200 focus:outline-none flex-shrink-0">
+                    <button id="mic-btn" class="w-12 h-12 rounded-2xl flex items-center justify-center shadow-sm transition-all focus:outline-none flex-shrink-0">
                         <i class="ph ph-microphone text-2xl" id="mic-icon"></i>
                     </button>
                 </div>
             </div>
         </div>
 
-        <!-- VIEW 2: LISTEN VERWALTUNG & ARCHIV -->
-        <div id="view-lists" class="view h-full w-full flex flex-col bg-gray-50">
-            <header class="bg-white p-5 border-b shadow-sm flex-shrink-0">
-                <h1 class="text-2xl font-bold text-gray-800">Meine Listen</h1>
+        <div id="view-lists" class="view h-full w-full bg-gray-50">
+            <header class="bg-white pt-6 pb-4 px-5 border-b shadow-sm flex-shrink-0 flex justify-between items-center">
+                <h1 class="text-xl font-bold text-gray-800">Listen & Archiv</h1>
+                <!-- HIER ist jetzt der Einstellungs-Button, sauber aufgeräumt -->
+                <button onclick="UIModule.openSettings()" class="bg-gray-100 text-gray-600 hover:text-teal-600 rounded-full p-2.5 transition">
+                    <i class="ph ph-gear-six text-xl"></i>
+                </button>
             </header>
 
-            <main class="flex-1 overflow-y-auto p-5">
-                <h2 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 ml-1">Aktive Einkäufe</h2>
-                <ul id="lists-container" class="space-y-3 mb-6"></ul>
+            <main class="flex-1 overflow-y-auto no-scrollbar p-5">
+                <!-- Aktive Listen -->
+                <h2 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 ml-1">Aktive Einkäufe</h2>
+                <ul id="lists-container" class="space-y-3 mb-8"></ul>
                 
-                <div class="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm mb-8">
+                <!-- Neue Liste -->
+                <div class="bg-white p-4 rounded-2xl shadow-sm mb-8">
                     <h3 class="text-sm font-bold text-gray-600 mb-3">Neue Liste erstellen</h3>
                     <div class="flex gap-2">
-                        <input type="text" id="new-list-input" placeholder="z.B. Wochenende..." class="flex-1 bg-gray-50 border border-gray-200 rounded-xl py-2 px-4 focus:outline-none focus:border-teal-500 text-sm">
+                        <input type="text" id="new-list-input" placeholder="Name (z.B. Wochenende)" class="flex-1 bg-gray-50 border border-gray-200 rounded-xl py-2 px-3 focus:outline-none focus:border-teal-500 text-sm">
                         <button onclick="DatabaseModule.createNewList()" class="bg-teal-600 text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-teal-700 transition">Neu</button>
                     </div>
                 </div>
 
-                <h2 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 ml-1">Archiv (Erledigt)</h2>
-                <ul id="archive-container" class="space-y-3 mb-6 opacity-70"></ul>
+                <!-- Archiv -->
+                <h2 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 ml-1">Erledigt (Archiv)</h2>
+                <ul id="archive-container" class="space-y-2 mb-6 opacity-70"></ul>
             </main>
         </div>
 
-        <!-- VIEW 3: SETUP & EINSTELLUNGEN -->
-        <div id="view-setup" class="view h-full w-full flex flex-col bg-gray-50">
-            <header class="bg-white p-5 border-b shadow-sm flex-shrink-0">
-                <h1 class="text-2xl font-bold text-gray-800">Einstellungen</h1>
-            </header>
-
-            <main class="flex-1 overflow-y-auto p-5">
-                <div id="install-container" class="hidden mb-6 bg-gradient-to-r from-teal-500 to-emerald-500 text-white rounded-2xl p-4 shadow-md flex items-center justify-between">
-                    <div>
-                        <h3 class="font-bold">App installieren</h3>
-                        <p class="text-xs text-teal-100">Zum Startbildschirm hinzufügen</p>
-                    </div>
-                    <button id="install-btn" class="bg-white text-teal-600 px-4 py-2 rounded-full text-sm font-bold shadow-sm">Installieren</button>
-                </div>
-
-                <!-- GIT DATENBANK VORBEREITUNG -->
-                <h2 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3 ml-1 mt-4 flex items-center gap-2">
-                    <i class="ph ph-database text-lg"></i> Git Datenbank
-                </h2>
-                <div class="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm mb-6 p-4 space-y-3">
-                    <p class="text-xs text-gray-500 mb-2">Verbinde die App mit GitHub, um Listen online zu synchronisieren.</p>
-                    <div>
-                        <label class="text-xs font-bold text-gray-600">GitHub Token (PAT)</label>
-                        <input type="password" id="git-token" class="w-full bg-gray-50 border border-gray-200 rounded-lg py-1.5 px-3 mt-1 text-sm" placeholder="ghp_xxxxxxxxxxxx">
-                    </div>
-                    <div>
-                        <label class="text-xs font-bold text-gray-600">Repository (z.B. user/repo)</label>
-                        <input type="text" id="git-repo" class="w-full bg-gray-50 border border-gray-200 rounded-lg py-1.5 px-3 mt-1 text-sm" placeholder="Nutzername/einkaufszettel-db">
-                    </div>
-                    <button onclick="DatabaseModule.saveGitConfig()" class="w-full bg-gray-800 text-white py-2 rounded-lg text-sm font-bold hover:bg-gray-700 mt-2">
-                        Verbindung Speichern
+        <div id="settings-overlay" class="absolute inset-0 bg-gray-900/40 z-50 flex justify-end">
+            <!-- Clickaway -->
+            <div class="absolute inset-0" onclick="UIModule.closeSettings()"></div>
+            
+            <div id="settings-panel" class="relative w-[85%] max-w-[320px] bg-gray-50 h-full shadow-2xl flex flex-col z-10">
+                <header class="bg-white p-5 border-b flex-shrink-0 flex justify-between items-center">
+                    <h2 class="text-lg font-bold text-gray-800">Einstellungen</h2>
+                    <button onclick="UIModule.closeSettings()" class="text-gray-400 hover:text-gray-800 p-1 rounded-full transition">
+                        <i class="ph ph-x text-xl"></i>
                     </button>
-                </div>
+                </header>
 
-                <h2 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3 ml-1">System</h2>
-                <div class="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm mb-6">
-                    <div class="p-4 border-b border-gray-50 flex items-center justify-between">
-                        <div class="flex items-center gap-3">
-                            <div class="w-8 h-8 rounded-full bg-blue-50 text-blue-500 flex items-center justify-center">
-                                <i class="ph ph-translate text-lg"></i>
-                            </div>
-                            <span class="text-gray-700 font-medium">Sprache</span>
+                <main class="flex-1 overflow-y-auto p-5">
+                    
+                    <!-- PWA Install -->
+                    <div id="install-container" class="hidden mb-6 bg-teal-600 text-white rounded-2xl p-4 shadow-sm flex-col gap-3">
+                        <div>
+                            <h3 class="font-bold text-sm">App installieren</h3>
+                            <p class="text-xs text-teal-100 mt-1">Für ein echtes App-Gefühl</p>
                         </div>
-                        <select id="lang-select" onchange="DatabaseModule.saveSettings()" class="bg-gray-100 border-none text-sm font-medium rounded-lg py-1.5 px-3 outline-none">
-                            <option value="de-DE">Deutsch</option>
-                            <option value="en-US">English</option>
-                        </select>
+                        <button id="install-btn" class="w-full bg-white text-teal-600 py-2 rounded-xl text-sm font-bold shadow-sm">Zum Homescreen</button>
                     </div>
-                    <div class="p-4 flex items-center justify-between cursor-pointer hover:bg-red-50 transition" onclick="DatabaseModule.clearAllData()">
-                        <div class="flex items-center gap-3">
-                            <div class="w-8 h-8 rounded-full bg-red-50 text-red-500 flex items-center justify-center">
-                                <i class="ph ph-warning-circle text-lg"></i>
-                            </div>
-                            <span class="text-red-600 font-medium">Alle Daten löschen</span>
+
+                    <!-- Git Sync Info -->
+                    <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 ml-1">Cloud Sync (Demnächst)</h3>
+                    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm mb-6 p-4">
+                        <p class="text-xs text-gray-500 mb-3">Die Github-Datenbankverbindung bereiten wir im nächsten Schritt vor.</p>
+                        <div class="space-y-3">
+                            <input type="password" id="git-token" class="w-full bg-gray-50 border border-gray-200 rounded-lg py-2 px-3 text-sm" placeholder="GitHub PAT Token">
+                            <input type="text" id="git-repo" class="w-full bg-gray-50 border border-gray-200 rounded-lg py-2 px-3 text-sm" placeholder="User/Repository">
+                            <button onclick="DatabaseModule.saveGitConfig()" class="w-full bg-gray-800 text-white py-2 rounded-lg text-sm font-bold hover:bg-gray-700">Speichern</button>
                         </div>
                     </div>
-                </div>
-            </main>
+
+                    <!-- System -->
+                    <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 ml-1">System</h3>
+                    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm mb-6">
+                        <div class="p-3 border-b border-gray-50 flex items-center justify-between">
+                            <span class="text-gray-700 text-sm font-medium ml-1">Spracheingabe</span>
+                            <select id="lang-select" onchange="DatabaseModule.saveSettings()" class="bg-gray-100 border-none text-sm font-medium rounded-lg py-1 px-2 outline-none">
+                                <option value="de-DE">DE</option>
+                                <option value="en-US">EN</option>
+                            </select>
+                        </div>
+                        <div class="p-3 flex items-center justify-between cursor-pointer hover:bg-red-50 transition" onclick="DatabaseModule.clearAllData()">
+                            <span class="text-red-500 text-sm font-medium ml-1">Alle Daten löschen</span>
+                            <i class="ph ph-trash text-red-500"></i>
+                        </div>
+                    </div>
+                </main>
+            </div>
         </div>
 
-        <nav class="bg-white border-t border-gray-200 flex justify-around pb-safe flex-shrink-0 z-30 shadow-[0_-5px_15px_-3px_rgba(0,0,0,0.05)]">
-            <button onclick="UIModule.switchTab('view-shopping')" id="tab-view-shopping" class="tab-btn flex-1 py-3 flex flex-col items-center gap-1 text-teal-600 transition">
-                <i class="ph ph-shopping-cart text-2xl mb-0.5"></i>
+        <nav class="bg-white border-t border-gray-200 flex pb-safe flex-shrink-0 z-30 shadow-[0_-5px_15px_-3px_rgba(0,0,0,0.05)]">
+            <button onclick="UIModule.switchTab('view-shopping')" id="tab-view-shopping" class="tab-btn flex-1 py-3.5 flex flex-col items-center gap-1 text-teal-600 transition relative">
+                <i class="ph ph-shopping-cart text-2xl"></i>
                 <span class="text-[10px] font-bold">Einkauf</span>
+                <!-- Aktiver Tab Indikator -->
+                <div class="absolute top-0 w-1/3 h-1 bg-teal-600 rounded-b-full indicator"></div>
             </button>
-            <button onclick="UIModule.switchTab('view-lists')" id="tab-view-lists" class="tab-btn flex-1 py-3 flex flex-col items-center gap-1 text-gray-400 hover:text-teal-500 transition">
-                <i class="ph ph-list text-2xl mb-0.5"></i>
+            <button onclick="UIModule.switchTab('view-lists')" id="tab-view-lists" class="tab-btn flex-1 py-3.5 flex flex-col items-center gap-1 text-gray-400 hover:text-teal-500 transition relative">
+                <i class="ph ph-list-dashes text-2xl"></i>
                 <span class="text-[10px] font-bold">Listen</span>
-            </button>
-            <button onclick="UIModule.switchTab('view-setup')" id="tab-view-setup" class="tab-btn flex-1 py-3 flex flex-col items-center gap-1 text-gray-400 hover:text-teal-500 transition">
-                <i class="ph ph-gear text-2xl mb-0.5"></i>
-                <span class="text-[10px] font-bold">Setup</span>
+                <div class="absolute top-0 w-1/3 h-1 bg-transparent rounded-b-full indicator"></div>
             </button>
         </nav>
 
     </div>
 
     <script>
-        // ==========================================
-        // MODULE 1: STORE BRANDING CONFIGURATION
-        // ==========================================
+        // Farb- und Icon-Definitionen für die Supermärkte
         const STORE_BRANDS = {
-            'Allgemein': { bg: 'bg-gray-700', text: 'text-white', border: 'border-gray-700', icon: 'ph-shopping-bag' },
-            'Aldi':      { bg: 'bg-blue-800', text: 'text-white', border: 'border-blue-800', icon: 'ph-storefront' },
-            'Lidl':      { bg: 'bg-blue-600', text: 'text-yellow-300', border: 'border-blue-600', icon: 'ph-basket' },
-            'Rewe':      { bg: 'bg-red-600', text: 'text-white', border: 'border-red-600', icon: 'ph-apple-logo' },
-            'Edeka':     { bg: 'bg-yellow-400', text: 'text-blue-900', border: 'border-yellow-400', icon: 'ph-shopping-cart' },
-            'Kaufland':  { bg: 'bg-red-700', text: 'text-white', border: 'border-red-700', icon: 'ph-buildings' },
-            'Drogerie':  { bg: 'bg-fuchsia-600', text: 'text-white', border: 'border-fuchsia-600', icon: 'ph-sparkle' },
-            'Baumarkt':  { bg: 'bg-orange-500', text: 'text-white', border: 'border-orange-500', icon: 'ph-hammer' }
+            "Allgemein": { color: "teal", hex: "#0d9488", bg: "bg-teal-50", text: "text-teal-700", border: "border-teal-100", btn: "bg-teal-600" },
+            "Aldi":      { color: "blue", hex: "#2563eb", bg: "bg-blue-50", text: "text-blue-700", border: "border-blue-100", btn: "bg-blue-600" },
+            "Lidl":      { color: "yellow", hex: "#eab308", bg: "bg-yellow-50", text: "text-yellow-700", border: "border-yellow-100", btn: "bg-yellow-500" },
+            "Rewe":      { color: "red", hex: "#dc2626", bg: "bg-red-50", text: "text-red-700", border: "border-red-100", btn: "bg-red-600" },
+            "Edeka":     { color: "yellow", hex: "#ca8a04", bg: "bg-yellow-50", text: "text-yellow-700", border: "border-yellow-100", btn: "bg-yellow-500" },
+            "Kaufland":  { color: "red", hex: "#ef4444", bg: "bg-red-50", text: "text-red-700", border: "border-red-100", btn: "bg-red-600" },
+            "Drogerie":  { color: "pink", hex: "#ec4899", bg: "bg-pink-50", text: "text-pink-700", border: "border-pink-100", btn: "bg-pink-500" },
+            "Baumarkt":  { color: "orange", hex: "#f97316", bg: "bg-orange-50", text: "text-orange-700", border: "border-orange-100", btn: "bg-orange-500" }
         };
 
-        // ==========================================
-        // MODULE 2: DATABASE & STATE (GIT PREP)
-        // ==========================================
         const DatabaseModule = {
             data: {
                 currentListId: 'list_1',
                 settings: { lang: 'de-DE', gitToken: '', gitRepo: '' },
-                lists: [ { id: 'list_1', name: 'Go Gurls Liste', archived: false, items: [] } ]
+                lists: [ { id: 'list_1', name: 'Wocheneinkauf', items: [], archived: false, date: Date.now() } ]
             },
 
-            load: function() {
-                const savedData = localStorage.getItem('einkaufszettel_v4');
-                if (savedData) {
-                    this.data = JSON.parse(savedData);
+            loadData: function() {
+                const saved = localStorage.getItem('einkaufszettel_v4');
+                if (saved) {
+                    this.data = JSON.parse(saved);
                 } else {
-                    // Fallback Migration from older versions
-                    const oldData = localStorage.getItem('einkaufszettel_v3');
-                    if (oldData) {
-                        this.data = JSON.parse(oldData);
-                        this.data.lists.forEach(l => l.archived = false); // Add missing property
-                        localStorage.removeItem('einkaufszettel_v3');
-                    }
-                    this.saveLocal();
+                    const old = localStorage.getItem('einkaufszettel_v3');
+                    if (old) { this.data = JSON.parse(old); localStorage.removeItem('einkaufszettel_v3'); }
+                    this.saveData();
                 }
             },
 
-            saveLocal: function() {
+            saveData: function() {
                 localStorage.setItem('einkaufszettel_v4', JSON.stringify(this.data));
-                // Platzhalter für zukünftigen Git-Sync
-                this.syncToGit();
             },
-
-            // --- Git Placeholder Logic ---
-            saveGitConfig: function() {
-                this.data.settings.gitToken = document.getElementById('git-token').value;
-                this.data.settings.gitRepo = document.getElementById('git-repo').value;
-                this.saveLocal();
-                alert("Git Einstellungen lokal gespeichert! (Sync-Logik folgt in Version 5)");
-            },
-
-            syncToGit: async function() {
-                if(!this.data.settings.gitToken || !this.data.settings.gitRepo) return;
-                // Hier kommt im nächsten Schritt die fetch('https://api.github.com/...') Logik rein.
-                console.log("Git Sync simuliert...");
-            },
-            // -----------------------------
 
             getCurrentList: function() {
                 return this.data.lists.find(l => l.id === this.data.currentListId) || this.data.lists[0];
@@ -271,288 +257,232 @@
 
             createNewList: function() {
                 const input = document.getElementById('new-list-input');
-                const name = input.value.trim();
-                if (!name) return;
+                const name = input.value.trim() || 'Neue Liste';
                 
-                const newList = { id: 'list_' + Date.now(), name: name, archived: false, items: [] };
+                const newList = { id: 'list_' + Date.now(), name: name, items: [], archived: false, date: Date.now() };
                 this.data.lists.push(newList);
                 this.data.currentListId = newList.id;
                 input.value = '';
                 
-                this.saveLocal();
+                this.saveData();
                 UIModule.updateAll();
                 UIModule.switchTab('view-shopping');
             },
 
             archiveCurrentList: function() {
-                if(confirm("Einkauf abgeschlossen? Liste ins Archiv verschieben?")) {
-                    const list = this.getCurrentList();
+                const list = this.getCurrentList();
+                if(list.items.length === 0) return alert("Leere Listen können nicht abgeschlossen werden.");
+                if(confirm(`Möchtest du '${list.name}' ins Archiv verschieben?`)) {
                     list.archived = true;
-                    // Finde eine neue aktive Liste, oder erstelle eine
-                    const nextActive = this.data.lists.find(l => !l.archived);
-                    if(nextActive) {
-                        this.data.currentListId = nextActive.id;
-                    } else {
-                        const newList = { id: 'list_' + Date.now(), name: 'Neue Liste', archived: false, items: [] };
-                        this.data.lists.push(newList);
-                        this.data.currentListId = newList.id;
+                    let nextActive = this.data.lists.find(l => !l.archived);
+                    if(!nextActive) {
+                        nextActive = { id: 'list_' + Date.now(), name: 'Neue Liste', items: [], archived: false, date: Date.now() };
+                        this.data.lists.push(nextActive);
                     }
-                    this.saveLocal();
+                    this.data.currentListId = nextActive.id;
+                    this.saveData();
                     UIModule.updateAll();
+                    UIModule.switchTab('view-lists');
                 }
             },
 
             deleteList: function(id) {
-                if (confirm('Liste unwiderruflich löschen?')) {
+                if (confirm('Liste wirklich löschen?')) {
                     this.data.lists = this.data.lists.filter(l => l.id !== id);
                     if (this.data.currentListId === id) {
-                        const nextList = this.data.lists.find(l => !l.archived) || this.data.lists[0];
-                        this.data.currentListId = nextList ? nextList.id : null;
+                        const next = this.data.lists.find(l => !l.archived) || this.data.lists[0];
+                        this.data.currentListId = next ? next.id : null;
                     }
-                    this.saveLocal();
+                    this.saveData();
                     UIModule.updateAll();
                 }
             },
 
             saveSettings: function() {
                 this.data.settings.lang = document.getElementById('lang-select').value;
-                if(window.SpeechModule) SpeechModule.updateLang();
-                this.saveLocal();
+                if(SpeechModule.recognition) SpeechModule.recognition.lang = this.data.settings.lang;
+                this.saveData();
+            },
+
+            saveGitConfig: function() {
+                this.data.settings.gitToken = document.getElementById('git-token').value.trim();
+                this.data.settings.gitRepo = document.getElementById('git-repo').value.trim();
+                this.saveData();
+                alert("Git Konfiguration gespeichert!");
             },
 
             clearAllData: function() {
-                if (confirm('ACHTUNG: ALLE Daten löschen?')) {
-                    localStorage.removeItem('einkaufszettel_v4');
+                if (confirm('ACHTUNG: Willst du wirklich ALLE Daten löschen?')) {
+                    localStorage.clear();
                     location.reload(); 
                 }
             }
         };
 
-        // ==========================================
-        // MODULE 3: ITEM LOGIC
-        // ==========================================
-        const ItemModule = {
-            parseInput: function(input) {
-                let text = input.trim().replace(/\.$/, '');
-                let quantity = '';
-                
-                const numMap = { "ein": 1, "eine": 1, "einen": 1, "zwei": 2, "drei": 3, "vier": 4, "fünf": 5, "sechs": 6, "sieben": 7, "acht": 8, "neun": 9, "zehn": 10, "elf": 11, "zwölf": 12 };
-                const words = text.split(' ');
-                if (words.length > 1 && numMap[words[0].toLowerCase()]) {
-                    words[0] = numMap[words[0].toLowerCase()];
-                    text = words.join(' ');
-                }
-
-                const match = text.match(/^(\d+(?:[.,]\d+)?\s*(?:liter|l|kilo|kg|gramm|g|packungen|packung|stück|flaschen|flasche|dosen|dose|gläser|glas)?)\s+(.*)/i);
-                if (match) {
-                    quantity = match[1].trim();
-                    text = match[2].trim();
-                }
-                
-                return { text: text.charAt(0).toUpperCase() + text.slice(1), quantity: quantity };
-            },
-
-            add: function(text) {
-                if (!text.trim()) return;
-                const parsed = this.parseInput(text);
-                const currentList = DatabaseModule.getCurrentList();
-                const selectedStore = document.getElementById('store-select').value;
-
-                currentList.items.push({
-                    id: Date.now().toString(),
-                    text: parsed.text,
-                    quantity: parsed.quantity,
-                    quantityConfirmed: false,
-                    checked: false,
-                    store: selectedStore
-                });
-                
-                DatabaseModule.saveLocal();
-                UIModule.updateAll();
-                document.getElementById('manual-input').value = ''; 
-            },
-
-            toggleCheck: function(id) {
-                const currentList = DatabaseModule.getCurrentList();
-                const item = currentList.items.find(i => i.id === id);
-                if (item) item.checked = !item.checked;
-                DatabaseModule.saveLocal();
-                UIModule.updateShoppingUI();
-            },
-
-            toggleQuantity: function(event, id) {
-                event.stopPropagation();
-                const currentList = DatabaseModule.getCurrentList();
-                const item = currentList.items.find(i => i.id === id);
-                if (item) {
-                    item.quantityConfirmed = !item.quantityConfirmed;
-                    DatabaseModule.saveLocal();
-                    UIModule.updateShoppingUI();
-                }
-            },
-
-            delete: function(id) {
-                const currentList = DatabaseModule.getCurrentList();
-                currentList.items = currentList.items.filter(item => item.id !== id);
-                DatabaseModule.saveLocal();
-                UIModule.updateAll();
-            }
-        };
-
-        // ==========================================
-        // MODULE 4: USER INTERFACE RENDERER
-        // ==========================================
         const UIModule = {
             updateAll: function() {
                 this.updateShoppingUI();
                 this.updateListsUI();
-                this.updateSetupUI();
-            },
-
-            updateInputTheme: function() {
-                const store = document.getElementById('store-select').value;
-                const brand = STORE_BRANDS[store] || STORE_BRANDS['Allgemein'];
-                const container = document.getElementById('input-container');
-                
-                // Ändert die obere Border-Farbe der Eingabeleiste entsprechend des Ladens
-                container.className = `bg-white border-t-4 p-4 shadow-[0_-10px_15px_-3px_rgba(0,0,0,0.05)] z-20 flex-shrink-0 store-theme-transition ${brand.border}`;
-                document.getElementById('status-text').className = `text-center text-sm font-bold mb-2 h-5 transition-opacity ${brand.text.replace('text-white', 'text-gray-600').replace('text-yellow-300', 'text-blue-600')}`;
+                this.updateStoreSelectUI();
             },
 
             updateShoppingUI: function() {
-                const listContainer = document.getElementById('shopping-list');
-                const emptyState = document.getElementById('empty-state');
-                const title = document.getElementById('current-list-title');
-                const countText = document.getElementById('item-count');
-                
                 const currentList = DatabaseModule.getCurrentList();
                 if(!currentList) return;
 
-                title.innerHTML = `<i class="ph ph-shopping-cart text-3xl"></i> ${currentList.name}`;
-                listContainer.innerHTML = '';
+                document.getElementById('current-list-title').textContent = currentList.name;
+                
+                const listEl = document.getElementById('shopping-list');
+                const emptyEl = document.getElementById('empty-state');
+                listEl.innerHTML = '';
                 
                 if (currentList.items.length === 0) {
-                    emptyState.style.display = 'flex';
+                    emptyEl.style.display = 'flex';
                 } else {
-                    emptyState.style.display = 'none';
+                    emptyEl.style.display = 'none';
                     
-                    // Gruppiere Items nach Laden
                     const groups = {};
                     currentList.items.forEach(item => {
-                        const storeName = item.store || 'Allgemein';
-                        if (!groups[storeName]) groups[storeName] = [];
-                        groups[storeName].push(item);
+                        const store = item.store || 'Allgemein';
+                        if (!groups[store]) groups[store] = [];
+                        groups[store].push(item);
                     });
 
-                    // Render Store Cards (Charts)
-                    Object.keys(groups).sort().forEach(store => {
-                        const brand = STORE_BRANDS[store] || STORE_BRANDS['Allgemein'];
-                        const sortedItems = groups[store].sort((a, b) => a.checked - b.checked);
+                    // Saubereres Card Design
+                    Object.keys(groups).sort().forEach(storeName => {
+                        const brand = STORE_BRANDS[storeName] || STORE_BRANDS['Allgemein'];
+                        const sortedItems = groups[storeName].sort((a, b) => a.checked - b.checked);
 
-                        // Card Container erstellen
                         const card = document.createElement('div');
-                        card.className = "fade-in rounded-2xl overflow-hidden mb-5 shadow-md border border-gray-100 bg-white";
+                        // Extrem weiche, helle Karten
+                        card.className = `mb-4 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden`;
                         
-                        // Card Header in Laden-Farben
-                        card.innerHTML = `
-                            <div class="${brand.bg} ${brand.text} p-3 flex items-center gap-2">
-                                <i class="ph ${brand.icon} text-xl"></i>
-                                <h3 class="font-bold uppercase tracking-wider text-sm">${store}</h3>
-                            </div>
-                            <ul class="p-2 space-y-1" id="store-ul-${store}"></ul>
+                        // Dezenter Header
+                        const header = document.createElement('div');
+                        header.className = `${brand.bg} px-4 py-2 border-b border-gray-50 flex items-center justify-between`;
+                        header.innerHTML = `
+                            <span class="text-xs font-bold ${brand.text} uppercase tracking-wider">${storeName}</span>
+                            <span class="text-[10px] text-gray-400 font-medium">${sortedItems.length} Artikel</span>
                         `;
-                        listContainer.appendChild(card);
+                        card.appendChild(header);
 
-                        const ul = card.querySelector(`#store-ul-${store}`);
+                        const ul = document.createElement('ul');
+                        ul.className = "divide-y divide-gray-50";
 
-                        // Items in die Card einfügen
                         sortedItems.forEach(item => {
                             const li = document.createElement('li');
-                            li.className = `flex items-center justify-between p-3 rounded-xl transition-all duration-200 ${item.checked ? 'opacity-50 bg-gray-50' : 'hover:bg-gray-50'}`;
+                            // Reduziertes Padding für kompaktere Darstellung
+                            li.className = `fade-in flex items-center justify-between px-4 py-2.5 ${item.checked ? 'opacity-50 bg-gray-50' : 'bg-white'} transition-all`;
                             
-                            let quantityHtml = '';
+                            let qtyHtml = '';
                             if (item.quantity) {
-                                const badgeClass = item.quantityConfirmed ? 'bg-teal-100 text-teal-700' : 'bg-orange-100 text-orange-700 shadow-sm transform hover:scale-105';
-                                const iconHtml = item.quantityConfirmed ? '<i class="ph ph-check text-xs mr-1 font-bold"></i>' : '';
-                                quantityHtml = `<div onclick="ItemModule.toggleQuantity(event, '${item.id}')" class="mr-3 px-3 py-1 rounded-xl font-bold text-xs flex items-center cursor-pointer transition-all ${badgeClass}">${iconHtml}${item.quantity}</div>`;
+                                const qClass = item.quantityConfirmed ? `${brand.bg} ${brand.text} border-${brand.color}-200` : 'bg-gray-100 text-gray-600 border-gray-200';
+                                qtyHtml = `
+                                    <div onclick="InputModule.toggleQuantity(event, '${item.id}')" 
+                                         class="mr-3 px-2 py-0.5 rounded-lg border text-xs font-bold flex items-center cursor-pointer transition-all active:scale-95 ${qClass}">
+                                        ${item.quantityConfirmed ? '✓ ' : ''}${item.quantity}
+                                    </div>
+                                `;
                             }
 
                             li.innerHTML = `
                                 <div class="flex items-center flex-1 min-w-0 pr-2">
                                     <label class="flex items-center justify-center cursor-pointer mr-3">
                                         <div class="relative flex items-center justify-center">
-                                            <input type="checkbox" class="custom-checkbox opacity-0 absolute h-0 w-0" ${item.checked ? 'checked' : ''} onchange="ItemModule.toggleCheck('${item.id}')">
-                                            <div class="w-6 h-6 border-2 border-gray-300 rounded-full flex items-center justify-center transition-colors">
-                                                <svg class="w-4 h-4 text-white hidden pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-                                                </svg>
+                                            <input type="checkbox" class="custom-checkbox opacity-0 absolute h-0 w-0" ${item.checked ? 'checked' : ''} onchange="InputModule.toggleItem('${item.id}')">
+                                            <div class="w-5 h-5 border-2 border-gray-300 rounded-full flex items-center justify-center transition-colors">
+                                                <svg class="w-3 h-3 text-white hidden pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
                                             </div>
                                         </div>
                                     </label>
-                                    ${quantityHtml}
-                                    <span class="text-lg truncate ${item.checked ? 'line-through text-gray-400' : 'text-gray-700 font-medium'} cursor-pointer" onclick="ItemModule.toggleCheck('${item.id}')">${item.text}</span>
+                                    ${qtyHtml}
+                                    <span class="text-base truncate ${item.checked ? 'line-through text-gray-400' : 'text-gray-800'} cursor-pointer" onclick="InputModule.toggleItem('${item.id}')">${item.text}</span>
                                 </div>
-                                <button onclick="ItemModule.delete('${item.id}')" class="text-gray-300 hover:text-red-500 p-2 rounded-full hover:bg-red-50 transition-colors focus:outline-none flex-shrink-0">
-                                    <i class="ph ph-x-circle text-xl"></i>
+                                <button onclick="InputModule.deleteItem('${item.id}')" class="text-gray-300 hover:text-red-500 py-2 pl-2 focus:outline-none flex-shrink-0">
+                                    <i class="ph ph-x text-lg"></i>
                                 </button>
                             `;
                             ul.appendChild(li);
                         });
+                        
+                        card.appendChild(ul);
+                        listEl.appendChild(card);
                     });
                 }
+
                 const openItems = currentList.items.filter(i => !i.checked).length;
-                countText.textContent = `${openItems} offene Artikel`;
+                document.getElementById('item-count').textContent = `${openItems} offen`;
             },
 
             updateListsUI: function() {
-                const activeContainer = document.getElementById('lists-container');
-                const archiveContainer = document.getElementById('archive-container');
-                activeContainer.innerHTML = '';
-                archiveContainer.innerHTML = '';
+                const activeCont = document.getElementById('lists-container');
+                const archiveCont = document.getElementById('archive-container');
+                activeCont.innerHTML = ''; archiveCont.innerHTML = '';
                 
                 DatabaseModule.data.lists.forEach(list => {
-                    const isActiveList = list.id === DatabaseModule.data.currentListId;
+                    const isActive = list.id === DatabaseModule.data.currentListId;
                     const li = document.createElement('li');
                     
-                    if(list.archived) {
-                        // Archived List Style
-                        li.className = `flex items-center justify-between p-3 rounded-xl border bg-gray-100 border-gray-200`;
+                    if (list.archived) {
+                        const dateStr = new Date(list.date).toLocaleDateString('de-DE', {day:'2-digit', month:'2-digit'});
+                        li.className = "flex items-center justify-between p-3 rounded-xl bg-gray-100 border border-gray-200";
                         li.innerHTML = `
-                            <div class="flex-1 font-medium text-gray-500 flex items-center">
-                                <i class="ph ph-archive text-lg mr-2"></i> ${list.name}
+                            <div class="flex-1 text-gray-500 text-sm flex items-center gap-2">
+                                <i class="ph ph-archive"></i><span class="line-through">${list.name}</span> <span class="text-xs text-gray-400">(${dateStr})</span>
                             </div>
-                            <button onclick="DatabaseModule.deleteList('${list.id}')" class="text-gray-400 hover:text-red-500 p-2 rounded-full">
+                            <button onclick="DatabaseModule.deleteList('${list.id}')" class="text-gray-400 hover:text-red-500 p-1">
                                 <i class="ph ph-trash"></i>
                             </button>
                         `;
-                        archiveContainer.appendChild(li);
+                        archiveCont.appendChild(li);
                     } else {
-                        // Active List Style
-                        li.className = `flex items-center justify-between p-4 rounded-2xl cursor-pointer border shadow-sm transition-all ${isActiveList ? 'bg-teal-50 border-teal-200' : 'bg-white border-gray-100 hover:bg-gray-50'}`;
+                        li.className = `flex items-center justify-between p-3.5 rounded-2xl cursor-pointer border shadow-sm transition-all ${isActive ? 'bg-teal-50 border-teal-200' : 'bg-white border-gray-100'}`;
                         li.innerHTML = `
-                            <div class="flex-1 font-bold text-lg flex items-center ${isActiveList ? 'text-teal-700' : 'text-gray-700'}" onclick="UIModule.selectList('${list.id}')">
-                                <i class="ph ${isActiveList ? 'ph-check-circle text-teal-500' : 'ph-list text-gray-400'} text-xl mr-3"></i>
-                                ${list.name} <span class="ml-2 text-xs font-normal bg-white px-2 py-1 rounded-full border border-gray-200">${list.items.length} Art.</span>
+                            <div class="flex-1 font-semibold text-[15px] flex items-center gap-3 ${isActive ? 'text-teal-700' : 'text-gray-700'}" onclick="UIModule.selectList('${list.id}')">
+                                <i class="ph ${isActive ? 'ph-check-circle text-teal-500' : 'ph-list text-gray-400'} text-xl"></i>
+                                ${list.name} 
+                                <span class="text-xs font-normal bg-white px-2 py-0.5 rounded-full border border-gray-100">${list.items.length}</span>
                             </div>
-                            ${DatabaseModule.data.lists.filter(l => !l.archived).length > 1 ? `
-                            <button onclick="DatabaseModule.deleteList('${list.id}')" class="text-gray-400 hover:text-red-500 p-2 rounded-full">
-                                <i class="ph ph-trash text-xl"></i>
-                            </button>` : ''}
+                            ${DatabaseModule.data.lists.filter(l=>!l.archived).length > 1 ? `
+                            <button onclick="DatabaseModule.deleteList('${list.id}')" class="text-gray-400 hover:text-red-500 p-2">
+                                <i class="ph ph-trash text-lg"></i>
+                            </button>
+                            ` : ''}
                         `;
-                        activeContainer.appendChild(li);
+                        activeCont.appendChild(li);
                     }
                 });
             },
 
-            updateSetupUI: function() {
+            openSettings: function() {
                 document.getElementById('lang-select').value = DatabaseModule.data.settings.lang || 'de-DE';
                 document.getElementById('git-token').value = DatabaseModule.data.settings.gitToken || '';
                 document.getElementById('git-repo').value = DatabaseModule.data.settings.gitRepo || '';
+                
+                document.getElementById('settings-overlay').classList.add('open');
+                setTimeout(() => document.getElementById('settings-panel').classList.add('open'), 10);
+            },
+
+            closeSettings: function() {
+                document.getElementById('settings-panel').classList.remove('open');
+                setTimeout(() => document.getElementById('settings-overlay').classList.remove('open'), 300);
+            },
+
+            updateStoreSelectUI: function() {
+                const select = document.getElementById('store-select');
+                const storeName = select.value;
+                const brand = STORE_BRANDS[storeName] || STORE_BRANDS['Allgemein'];
+                
+                const addBtn = document.getElementById('add-btn');
+                const micBtn = document.getElementById('mic-btn');
+                
+                addBtn.className = `absolute right-1.5 top-1.5 bottom-1.5 ${brand.btn} text-white rounded-xl w-10 flex items-center justify-center transition-colors`;
+                micBtn.className = `w-12 h-12 ${brand.bg} ${brand.text} rounded-2xl flex items-center justify-center shadow-sm transition-all focus:outline-none flex-shrink-0 border ${brand.border}`;
             },
 
             selectList: function(id) {
                 DatabaseModule.data.currentListId = id;
-                DatabaseModule.saveLocal();
+                DatabaseModule.saveData();
                 this.updateAll();
                 this.switchTab('view-shopping');
             },
@@ -564,120 +494,187 @@
                 document.querySelectorAll('.tab-btn').forEach(btn => {
                     btn.classList.remove('text-teal-600');
                     btn.classList.add('text-gray-400');
+                    btn.querySelector('.indicator').classList.replace('bg-teal-600', 'bg-transparent');
                 });
-                document.getElementById('tab-' + viewId).classList.remove('text-gray-400');
-                document.getElementById('tab-' + viewId).classList.add('text-teal-600');
+                
+                const activeBtn = document.getElementById('tab-' + viewId);
+                activeBtn.classList.remove('text-gray-400');
+                activeBtn.classList.add('text-teal-600');
+                activeBtn.querySelector('.indicator').classList.replace('bg-transparent', 'bg-teal-600');
+
+                if (viewId === 'view-lists') this.updateListsUI();
             }
         };
 
-        // ==========================================
-        // MODULE 5: SPEECH RECOGNITION
-        // ==========================================
+        const InputModule = {
+            parseInput: function(input) {
+                let text = input.trim().replace(/\.$/, '');
+                let quantity = '';
+                
+                const numMap = { "ein": 1, "eine": 1, "einen": 1, "zwei": 2, "drei": 3, "vier": 4, "fünf": 5, "sechs": 6, "sieben": 7, "acht": 8, "neun": 9, "zehn": 10 };
+                const words = text.split(' ');
+                if (words.length > 1 && numMap[words[0].toLowerCase()]) {
+                    words[0] = numMap[words[0].toLowerCase()];
+                    text = words.join(' ');
+                }
+
+                const match = text.match(/^(\d+(?:[.,]\d+)?\s*(?:liter|l|kilo|kg|gramm|g|packungen|packung|stück|flaschen|flasche|dosen|dose|gläser|glas|x)?)\s+(.*)/i);
+                if (match) {
+                    quantity = match[1].trim();
+                    text = match[2].trim();
+                }
+                
+                return { text: text.charAt(0).toUpperCase() + text.slice(1), quantity: quantity };
+            },
+
+            addItem: function(text) {
+                if (!text.trim()) return;
+                const parsed = this.parseInput(text);
+                const list = DatabaseModule.getCurrentList();
+                const store = document.getElementById('store-select').value;
+
+                list.items.push({
+                    id: Date.now().toString(),
+                    text: parsed.text,
+                    quantity: parsed.quantity,
+                    quantityConfirmed: false,
+                    checked: false,
+                    store: store
+                });
+                
+                DatabaseModule.saveData();
+                UIModule.updateShoppingUI();
+                document.getElementById('manual-input').value = ''; 
+            },
+
+            toggleItem: function(id) {
+                const list = DatabaseModule.getCurrentList();
+                const item = list.items.find(i => i.id === id);
+                if (item) item.checked = !item.checked;
+                DatabaseModule.saveData();
+                UIModule.updateShoppingUI();
+            },
+
+            toggleQuantity: function(event, id) {
+                event.stopPropagation();
+                const list = DatabaseModule.getCurrentList();
+                const item = list.items.find(i => i.id === id);
+                if (item) item.quantityConfirmed = !item.quantityConfirmed;
+                DatabaseModule.saveData();
+                UIModule.updateShoppingUI();
+            },
+
+            deleteItem: function(id) {
+                const list = DatabaseModule.getCurrentList();
+                list.items = list.items.filter(item => item.id !== id);
+                DatabaseModule.saveData();
+                UIModule.updateShoppingUI();
+            }
+        };
+
         const SpeechModule = {
             recognition: null,
             isListening: false,
 
             init: function() {
-                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-                if (!SpeechRecognition) {
-                    document.getElementById('mic-btn').style.display = 'none';
-                    return;
-                }
+                const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+                if (!SR) return document.getElementById('mic-btn').style.display = 'none';
 
-                this.recognition = new SpeechRecognition();
+                this.recognition = new SR();
                 this.recognition.continuous = false;
                 this.recognition.interimResults = false;
-                this.recognition.maxAlternatives = 1;
 
                 this.recognition.onstart = () => {
                     this.isListening = true;
                     document.getElementById('mic-btn').classList.add('listening');
                     document.getElementById('mic-icon').classList.replace('ph-microphone', 'ph-microphone-stage');
-                    document.getElementById('status-text').textContent = "Ich höre zu...";
+                    this.setStatus("Ich höre zu...", 'text-teal-600');
                 };
 
                 this.recognition.onresult = (event) => {
                     const transcript = event.results[0][0].transcript;
-                    ItemModule.add(transcript);
-                    document.getElementById('status-text').textContent = `"${transcript}" hinzugefügt!`;
-                    setTimeout(() => { if(!this.isListening) document.getElementById('status-text').textContent = ""; }, 2000);
+                    InputModule.addItem(transcript);
+                    this.setStatus(`✓ "${transcript}"`, 'text-gray-500');
+                    setTimeout(() => this.clearStatus(), 2000);
                 };
 
-                this.recognition.onerror = (event) => {
-                    console.error("Mic Fehler:", event.error);
-                    document.getElementById('status-text').textContent = "Fehler. Bitte erneut versuchen.";
+                this.recognition.onerror = () => {
+                    this.setStatus("Fehler beim Hören.", 'text-red-500');
                     this.stop();
+                    setTimeout(() => this.clearStatus(), 3000);
                 };
 
                 this.recognition.onend = () => this.stop();
-            },
 
-            updateLang: function() {
-                if(this.recognition) this.recognition.lang = DatabaseModule.data.settings.lang || 'de-DE';
-            },
-
-            toggle: function() {
-                if (!this.recognition) return;
-                if (this.isListening) {
-                    this.recognition.stop();
-                } else {
-                    this.updateLang();
-                    this.recognition.start();
-                }
+                document.getElementById('mic-btn').addEventListener('click', () => {
+                    if (this.isListening) this.recognition.stop();
+                    else { 
+                        this.recognition.lang = DatabaseModule.data.settings.lang;
+                        this.recognition.start(); 
+                    }
+                });
             },
 
             stop: function() {
                 this.isListening = false;
                 document.getElementById('mic-btn').classList.remove('listening');
                 document.getElementById('mic-icon').classList.replace('ph-microphone-stage', 'ph-microphone');
-                if(document.getElementById('status-text').textContent === "Ich höre zu...") document.getElementById('status-text').textContent = "";
+                if(document.getElementById('status-text').textContent.includes("höre")) this.clearStatus();
+            },
+
+            setStatus: function(msg, color) {
+                const el = document.getElementById('status-text');
+                el.textContent = msg; el.className = `text-xs font-medium h-4 truncate ${color}`;
+            },
+
+            clearStatus: function() {
+                if(!this.isListening) document.getElementById('status-text').textContent = "";
             }
         };
 
-        // Event Listeners for Input
-        document.getElementById('mic-btn').addEventListener('click', () => SpeechModule.toggle());
-        document.getElementById('add-btn').addEventListener('click', () => ItemModule.add(document.getElementById('manual-input').value));
-        document.getElementById('manual-input').addEventListener('keypress', (e) => { if (e.key === 'Enter') ItemModule.add(e.target.value); });
+        const PWAModule = {
+            init: function() {
+                const manifest = {
+                    name: "Einkaufszettel", short_name: "Einkauf", display: "standalone",
+                    background_color: "#111827", theme_color: "#0d9488", start_url: location.href,
+                    icons: [{
+                        src: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNTYgMjU2Ij48cmVjdCB3aWR0aD0iMjU2IiBoZWlnaHQ9IjI1NiIgZmlsbD0iIzBkOTQ4OCIvPjxjaXJjbGUgY3g9Ijg4IiBjeT0iMjE2IiByPSIxNiIgZmlsbD0id2hpdGUiLz48Y2lyY2xlIGN4PSIxNjgiIGN5PSIyMTYiIHI9IjE2IiBmaWxsPSJ3aGl0ZSIvPjxwYXRoIGQ9Ik0yMi45LDM4LjFBMjQsMjQsMCwwLDAsMTYsMjRIOEE4LDgsMCwwLDEsOCw4aDhBNDAsNDAsMCwwLDEsNDcuMSwzMy42TDU3LjMsNTRIMjI0YTE2LjEsMTYuMSwwLDAsMSwxNC43LDIyLjFsLTI0LDY0QTE2LDE2LDAsMCwxLDIwMCwxNTJIODQuN0wzOC40LDQ3WiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBzdHJva2Utd2lkdGg9IjE2Ii8+PC9zdmc+",
+                        sizes: "512x512", type: "image/svg+xml", purpose: "any maskable"
+                    }]
+                };
+                document.getElementById('manifest-link').href = URL.createObjectURL(new Blob([JSON.stringify(manifest)], {type: 'application/json'}));
 
+                if ('serviceWorker' in navigator) {
+                    const swCode = `self.addEventListener('install', e => self.skipWaiting()); self.addEventListener('activate', e => e.waitUntil(clients.claim())); self.addEventListener('fetch', e => {});`;
+                    navigator.serviceWorker.register(URL.createObjectURL(new Blob([swCode], {type: 'application/javascript'}))).catch(()=>{});
+                }
 
-        // ==========================================
-        // MODULE 6: PWA APP INSTALLER
-        // ==========================================
-        const manifest = {
-            name: "Einkaufszettel", short_name: "Einkauf", display: "standalone",
-            background_color: "#f3f4f6", theme_color: "#0d9488", start_url: location.href,
-            icons: [{
-                src: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNTYgMjU2Ij48cmVjdCB3aWR0aD0iMjU2IiBoZWlnaHQ9IjI1NiIgZmlsbD0iIzBkOTQ4OCIvPjxjaXJjbGUgY3g9Ijg4IiBjeT0iMjE2IiByPSIxNiIgZmlsbD0id2hpdGUiLz48Y2lyY2xlIGN4PSIxNjgiIGN5PSIyMTYiIHI9IjE2IiBmaWxsPSJ3aGl0ZSIvPjxwYXRoIGQ9Ik0yMi45LDM4LjFBMjQsMjQsMCwwLDAsMTYsMjRIOEE4LDgsMCwwLDEsOCw4aDhBNDAsNDAsMCwwLDEsNDcuMSwzMy42TDU3LjMsNTRIMjI0YTE2LjEsMTYuMSwwLDAsMSwxNC43LDIyLjFsLTI0LDY0QTE2LDE2LDAsMCwxLDIwMCwxNTJIODQuN0wzOC40LDQ3WiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBzdHJva2Utd2lkdGg9IjE2Ii8+PC9zdmc+",
-                sizes: "512x512", type: "image/svg+xml", purpose: "any maskable"
-            }]
-        };
-        document.getElementById('manifest-link').href = URL.createObjectURL(new Blob([JSON.stringify(manifest)], {type: 'application/json'}));
+                let deferredPrompt;
+                window.addEventListener('beforeinstallprompt', (e) => {
+                    e.preventDefault(); deferredPrompt = e;
+                    document.getElementById('install-container').style.display = 'flex';
+                });
 
-        if ('serviceWorker' in navigator) {
-            const swBlob = new Blob([`self.addEventListener('install', (e) => self.skipWaiting()); self.addEventListener('activate', (e) => e.waitUntil(clients.claim())); self.addEventListener('fetch', (e) => {});`], {type: 'application/javascript'});
-            navigator.serviceWorker.register(URL.createObjectURL(swBlob)).catch(()=>{});
-        }
-
-        let deferredPrompt;
-        window.addEventListener('beforeinstallprompt', (e) => {
-            e.preventDefault(); deferredPrompt = e;
-            document.getElementById('install-container').classList.remove('hidden');
-        });
-        document.getElementById('install-btn').addEventListener('click', async () => {
-            if (deferredPrompt) {
-                deferredPrompt.prompt();
-                if ((await deferredPrompt.userChoice).outcome === 'accepted') document.getElementById('install-container').classList.add('hidden');
-                deferredPrompt = null;
+                document.getElementById('install-btn').addEventListener('click', async () => {
+                    if (deferredPrompt) {
+                        deferredPrompt.prompt();
+                        const { outcome } = await deferredPrompt.userChoice;
+                        if (outcome === 'accepted') document.getElementById('install-container').style.display = 'none';
+                        deferredPrompt = null;
+                    }
+                });
             }
-        });
+        };
 
-        // ==========================================
-        // INITIALIZE APP
-        // ==========================================
-        window.onload = () => {
-            DatabaseModule.load();
+        window.onload = function() {
+            DatabaseModule.loadData();
             SpeechModule.init();
-            UIModule.updateInputTheme();
+            PWAModule.init();
+            
+            const manualInput = document.getElementById('manual-input');
+            document.getElementById('add-btn').addEventListener('click', () => InputModule.addItem(manualInput.value));
+            manualInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') InputModule.addItem(manualInput.value); });
+
             UIModule.updateAll();
         };
 
