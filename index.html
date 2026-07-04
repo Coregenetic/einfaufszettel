@@ -5,174 +5,241 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Mein Einkaufszettel</title>
     
-    <!-- App-like Verhalten für iOS und Android (Vollbild, keine URL-Leiste) -->
+    <!-- PWA Meta Tags -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Einkauf">
     <meta name="mobile-web-app-capable" content="yes">
-    <meta name="theme-color" content="#0d9488"> <!-- Passt zur Teal-Farbe (Türkis) der App -->
+    <meta name="theme-color" content="#0d9488">
 
-    <!-- Tailwind CSS für das Design -->
+    <!-- Dynamischer Link für das App-Manifest (wird im JS gesetzt) -->
+    <link id="manifest-link" rel="manifest" href="">
+
+    <!-- Tailwind CSS & Icons -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Phosphor Icons für die Symbole (Mikrofon, Mülleimer etc.) -->
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <style>
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: #f3f4f6; /* Leichtes Grau für den Hintergrund */
-            -webkit-tap-highlight-color: transparent; /* Entfernt das blaue Flackern beim Tippen auf Handys */
+            background-color: #f3f4f6;
+            -webkit-tap-highlight-color: transparent;
         }
         
-        /* Pulsierende Animation für den Aufnahme-Button */
         @keyframes pulse-ring {
             0% { transform: scale(0.8); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
             70% { transform: scale(1); box-shadow: 0 0 0 15px rgba(239, 68, 68, 0); }
             100% { transform: scale(0.8); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
         }
-        
-        .listening {
-            animation: pulse-ring 2s infinite;
-            background-color: #ef4444 !important; /* Rot wenn es aufnimmt */
-            color: white !important;
-        }
-
-        /* Sanftes Einblenden der Listen-Elemente */
-        .fade-in {
-            animation: fadeIn 0.3s ease-in-out;
-        }
-
+        .listening { animation: pulse-ring 2s infinite; background-color: #ef4444 !important; color: white !important; }
+        .fade-in { animation: fadeIn 0.3s ease-in-out; }
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(-10px); }
+            from { opacity: 0; transform: translateY(-5px); }
             to { opacity: 1; transform: translateY(0); }
         }
-
-        /* Checkbox Styling */
-        .custom-checkbox:checked + div {
-            background-color: #10b981;
-            border-color: #10b981;
-        }
-        .custom-checkbox:checked + div svg {
-            display: block;
-        }
+        .custom-checkbox:checked + div { background-color: #10b981; border-color: #10b981; }
+        .custom-checkbox:checked + div svg { display: block; }
+        
+        /* Views umschalten */
+        .view { display: none; }
+        .view.active { display: flex; flex-direction: column; }
     </style>
 </head>
-<body class="text-gray-800 antialiased h-screen flex flex-col">
+<body class="text-gray-800 antialiased h-screen overflow-hidden">
 
-    <div class="max-w-md w-full mx-auto bg-white h-full shadow-xl flex flex-col relative overflow-hidden">
-        
-        <!-- Header -->
-        <header class="bg-teal-600 text-white p-5 rounded-b-3xl shadow-md z-10">
-            <h1 class="text-2xl font-bold flex items-center gap-2">
-                <i class="ph ph-shopping-cart text-3xl"></i>
-                Einkaufszettel
-            </h1>
-            <p class="text-teal-100 text-sm mt-1" id="item-count">0 Artikel auf der Liste</p>
-        </header>
+    <div class="max-w-md w-full mx-auto bg-gray-50 h-full shadow-xl relative overflow-hidden flex flex-col">
 
-        <!-- Main Content Area (Scrollable List) -->
-        <main class="flex-1 overflow-y-auto p-4 pb-32">
-            <ul id="shopping-list" class="space-y-3">
-                <!-- Die Listen-Elemente werden hier per JavaScript eingefügt -->
-            </ul>
-            
-            <!-- Leerer Zustand (wenn die Liste leer ist) -->
-            <div id="empty-state" class="flex flex-col items-center justify-center h-full text-gray-400 mt-10">
-                <i class="ph ph-basket text-6xl mb-3 text-gray-300"></i>
-                <p class="text-center">Dein Zettel ist leer.<br>Tippe auf das Mikrofon!</p>
-            </div>
-        </main>
+        <!-- ============================================== -->
+        <!-- VIEW 1: EINKAUFSZETTEL (Hauptansicht)          -->
+        <!-- ============================================== -->
+        <div id="view-shopping" class="view active h-full w-full absolute inset-0">
+            <!-- Header -->
+            <header class="bg-teal-600 text-white p-5 rounded-b-3xl shadow-md z-10 flex justify-between items-center">
+                <div>
+                    <h1 class="text-2xl font-bold flex items-center gap-2" id="current-list-title">
+                        Lade Liste...
+                    </h1>
+                    <p class="text-teal-100 text-sm mt-1" id="item-count">0 Artikel auf der Liste</p>
+                </div>
+                <button onclick="switchView('view-menu')" class="p-2 bg-teal-700/50 rounded-full hover:bg-teal-700 transition">
+                    <i class="ph ph-list text-2xl"></i>
+                </button>
+            </header>
 
-        <!-- Footer / Input Area -->
-        <footer class="absolute bottom-0 w-full bg-white border-t border-gray-100 p-4 pb-6 shadow-[0_-10px_15px_-3px_rgba(0,0,0,0.05)] z-20">
-            
-            <!-- Feedback Text für die Spracherkennung -->
-            <div id="status-text" class="text-center text-sm text-gray-500 mb-3 h-5 transition-opacity"></div>
+            <!-- Main Content Area -->
+            <main class="flex-1 overflow-y-auto p-4 pb-32">
+                <ul id="shopping-list" class="space-y-3"></ul>
+                
+                <div id="empty-state" class="flex flex-col items-center justify-center h-full text-gray-400 mt-10">
+                    <i class="ph ph-basket text-6xl mb-3 text-gray-300"></i>
+                    <p class="text-center">Dein Zettel ist leer.<br>Tippe auf das Mikrofon!</p>
+                </div>
+            </main>
 
-            <div class="flex items-center gap-2">
-                <!-- Text Eingabe (Fallback) -->
-                <div class="relative flex-1">
-                    <input type="text" id="manual-input" placeholder="Artikel tippen..." 
-                           class="w-full bg-gray-100 border-none rounded-full py-3 px-5 pr-12 focus:outline-none focus:ring-2 focus:ring-teal-500 transition-all shadow-inner">
-                    <button id="add-btn" class="absolute right-1 top-1 bottom-1 bg-teal-600 text-white rounded-full w-10 h-10 flex items-center justify-center hover:bg-teal-700 transition-colors">
-                        <i class="ph ph-plus text-xl"></i>
+            <!-- Footer / Input Area -->
+            <footer class="absolute bottom-0 w-full bg-white border-t border-gray-100 p-4 pb-6 shadow-[0_-10px_15px_-3px_rgba(0,0,0,0.05)] z-20">
+                <div id="status-text" class="text-center text-sm text-gray-500 mb-3 h-5 transition-opacity"></div>
+                <div class="flex items-center gap-2">
+                    <div class="relative flex-1">
+                        <input type="text" id="manual-input" placeholder="Artikel tippen..." 
+                               class="w-full bg-gray-100 border-none rounded-full py-3 px-5 pr-12 focus:outline-none focus:ring-2 focus:ring-teal-500 transition-all shadow-inner">
+                        <button id="add-btn" class="absolute right-1 top-1 bottom-1 bg-teal-600 text-white rounded-full w-10 h-10 flex items-center justify-center hover:bg-teal-700 transition-colors">
+                            <i class="ph ph-plus text-xl"></i>
+                        </button>
+                    </div>
+                    <button id="mic-btn" class="w-14 h-14 bg-teal-100 text-teal-600 rounded-full flex items-center justify-center shadow-md transition-all hover:bg-teal-200 focus:outline-none flex-shrink-0">
+                        <i class="ph ph-microphone text-2xl" id="mic-icon"></i>
+                    </button>
+                </div>
+            </footer>
+        </div>
+
+
+        <!-- ============================================== -->
+        <!-- VIEW 2: MENÜ & EINSTELLUNGEN                 -->
+        <!-- ============================================== -->
+        <div id="view-menu" class="view h-full w-full absolute inset-0 bg-gray-50 z-30">
+            <!-- Header -->
+            <header class="bg-white p-5 border-b flex items-center gap-4 shadow-sm">
+                <button onclick="switchView('view-shopping')" class="p-2 bg-gray-100 text-gray-600 rounded-full hover:bg-gray-200 transition">
+                    <i class="ph ph-arrow-left text-xl"></i>
+                </button>
+                <h1 class="text-xl font-bold text-gray-800">Menü & Listen</h1>
+            </header>
+
+            <main class="flex-1 overflow-y-auto p-5">
+                
+                <!-- Install App Banner (Wird nur angezeigt, wenn verfügbar) -->
+                <div id="install-container" class="hidden mb-6 bg-gradient-to-r from-teal-500 to-emerald-500 text-white rounded-2xl p-4 shadow-md flex items-center justify-between">
+                    <div>
+                        <h3 class="font-bold">App installieren</h3>
+                        <p class="text-xs text-teal-100">Zum Startbildschirm hinzufügen</p>
+                    </div>
+                    <button id="install-btn" class="bg-white text-teal-600 px-4 py-2 rounded-full text-sm font-bold shadow-sm hover:bg-teal-50">
+                        Installieren
                     </button>
                 </div>
 
-                <!-- Mikrofon Button (Der Star der App) -->
-                <button id="mic-btn" class="w-14 h-14 bg-teal-100 text-teal-600 rounded-full flex items-center justify-center shadow-md transition-all hover:bg-teal-200 focus:outline-none flex-shrink-0">
-                    <i class="ph ph-microphone text-2xl" id="mic-icon"></i>
-                </button>
-            </div>
-        </footer>
+                <!-- Bereich: Meine Listen -->
+                <div class="mb-8">
+                    <h2 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3 ml-1">Meine Listen</h2>
+                    <ul id="lists-container" class="space-y-2 mb-3">
+                        <!-- Listen werden hier injiziert -->
+                    </ul>
+                    
+                    <!-- Neue Liste anlegen -->
+                    <div class="flex gap-2 mt-4">
+                        <input type="text" id="new-list-input" placeholder="Neue Liste (z.B. Baumarkt)..." 
+                               class="flex-1 bg-white border border-gray-200 rounded-xl py-2 px-4 focus:outline-none focus:border-teal-500 text-sm">
+                        <button onclick="createNewList()" class="bg-gray-800 text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-gray-700 transition">
+                            Erstellen
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Bereich: Einstellungen -->
+                <div>
+                    <h2 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3 ml-1">Einstellungen</h2>
+                    <div class="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
+                        
+                        <!-- Einstellung: Sprache -->
+                        <div class="p-4 border-b border-gray-50 flex items-center justify-between">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-full bg-blue-50 text-blue-500 flex items-center justify-center">
+                                    <i class="ph ph-translate text-lg"></i>
+                                </div>
+                                <span class="text-gray-700">Sprache (Mikrofon)</span>
+                            </div>
+                            <select id="lang-select" onchange="saveSettings()" class="bg-gray-100 border-none text-sm rounded-lg py-1 px-2 focus:ring-0 cursor-pointer">
+                                <option value="de-DE">Deutsch</option>
+                                <option value="en-US">English</option>
+                            </select>
+                        </div>
+
+                        <!-- Einstellung: Alles löschen -->
+                        <div class="p-4 flex items-center justify-between cursor-pointer hover:bg-red-50 transition" onclick="clearAllData()">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-full bg-red-50 text-red-500 flex items-center justify-center">
+                                    <i class="ph ph-warning-circle text-lg"></i>
+                                </div>
+                                <span class="text-red-600 font-medium">Alle Daten löschen</span>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <div class="text-center mt-10 text-xs text-gray-400">
+                    Einkaufszettel v2.0
+                </div>
+            </main>
+        </div>
+
     </div>
 
     <script>
-        // State Management
-        let items = JSON.parse(localStorage.getItem('shoppingList')) || [];
+        // ==========================================
+        // 1. DATEN-STRUKTUR & MIGRATION
+        // ==========================================
         
-        // DOM Elemente
+        // Grundgerüst der Daten
+        let appData = {
+            currentListId: 'list_1',
+            settings: { lang: 'de-DE' },
+            lists: [
+                { id: 'list_1', name: 'Go Gurls Liste', items: [] }
+            ]
+        };
+
+        // Lade Daten aus LocalStorage oder migriere alte Version v1
+        function loadData() {
+            const savedData = localStorage.getItem('einkaufszettel_v2');
+            if (savedData) {
+                appData = JSON.parse(savedData);
+            } else {
+                // Check ob alte Daten (v1) existieren
+                const oldList = localStorage.getItem('shoppingList');
+                if (oldList) {
+                    appData.lists[0].items = JSON.parse(oldList);
+                    // Alte Daten löschen um aufzuräumen
+                    localStorage.removeItem('shoppingList'); 
+                }
+                saveData();
+            }
+        }
+
+        function saveData() {
+            localStorage.setItem('einkaufszettel_v2', JSON.stringify(appData));
+        }
+
+        // Hilfsfunktion: Aktuelle Liste bekommen
+        function getCurrentList() {
+            return appData.lists.find(l => l.id === appData.currentListId) || appData.lists[0];
+        }
+
+        // ==========================================
+        // 2. UI UPDATE LOGIK (Einkaufszettel)
+        // ==========================================
         const listElement = document.getElementById('shopping-list');
         const emptyState = document.getElementById('empty-state');
         const itemCountText = document.getElementById('item-count');
-        const manualInput = document.getElementById('manual-input');
-        const addBtn = document.getElementById('add-btn');
-        const micBtn = document.getElementById('mic-btn');
-        const micIcon = document.getElementById('mic-icon');
-        const statusText = document.getElementById('status-text');
+        const currentListTitle = document.getElementById('current-list-title');
 
-        // Speichern in LocalStorage
-        function saveItems() {
-            localStorage.setItem('shoppingList', JSON.stringify(items));
-            updateUI();
-        }
-
-        // Artikel hinzufügen
-        function addItem(text) {
-            const cleanText = text.trim();
-            if (!cleanText) return;
+        function updateShoppingUI() {
+            const currentList = getCurrentList();
             
-            // Punkt am Ende entfernen, den die Spracherkennung oft anfügt
-            const formattedText = cleanText.replace(/\.$/, '');
-
-            items.push({
-                id: Date.now().toString(),
-                text: formattedText.charAt(0).toUpperCase() + formattedText.slice(1), // Erster Buchstabe groß
-                checked: false
-            });
+            // Titel aktualisieren
+            currentListTitle.innerHTML = `<i class="ph ph-shopping-cart text-3xl"></i> ${currentList.name}`;
             
-            saveItems();
-            manualInput.value = ''; // Eingabefeld leeren
-        }
-
-        // Artikel umschalten (gekauft / nicht gekauft)
-        function toggleItem(id) {
-            items = items.map(item => {
-                if (item.id === id) {
-                    return { ...item, checked: !item.checked };
-                }
-                return item;
-            });
-            saveItems();
-        }
-
-        // Artikel löschen
-        function deleteItem(id) {
-            items = items.filter(item => item.id !== id);
-            saveItems();
-        }
-
-        // UI Aktualisieren
-        function updateUI() {
             // Liste leeren
             listElement.innerHTML = '';
             
-            if (items.length === 0) {
+            if (currentList.items.length === 0) {
                 emptyState.style.display = 'flex';
             } else {
                 emptyState.style.display = 'none';
                 
                 // Gekaufte Artikel nach unten sortieren
-                const sortedItems = [...items].sort((a, b) => a.checked - b.checked);
+                const sortedItems = [...currentList.items].sort((a, b) => a.checked - b.checked);
 
                 sortedItems.forEach(item => {
                     const li = document.createElement('li');
@@ -198,12 +265,153 @@
                 });
             }
 
-            // Zähler aktualisieren
-            const openItemsCount = items.filter(i => !i.checked).length;
-            itemCountText.textContent = `${openItemsCount} Artikel zu besorgen`;
+            const openItemsCount = currentList.items.filter(i => !i.checked).length;
+            itemCountText.textContent = `${openItemsCount} Artikel in '${currentList.name}'`;
         }
 
-        // --- SPRACHERKENNUNG (Web Speech API) ---
+        // ==========================================
+        // 3. LISTEN-VERWALTUNG & EINSTELLUNGEN
+        // ==========================================
+        const listsContainer = document.getElementById('lists-container');
+        const newListInput = document.getElementById('new-list-input');
+        const langSelect = document.getElementById('lang-select');
+
+        function updateMenuUI() {
+            listsContainer.innerHTML = '';
+            
+            appData.lists.forEach(list => {
+                const isActive = list.id === appData.currentListId;
+                const li = document.createElement('li');
+                li.className = `flex items-center justify-between p-3 rounded-xl cursor-pointer border ${isActive ? 'bg-teal-50 border-teal-200' : 'bg-white border-gray-100 hover:bg-gray-50'}`;
+                
+                li.innerHTML = `
+                    <div class="flex-1 font-medium ${isActive ? 'text-teal-700' : 'text-gray-700'}" onclick="selectList('${list.id}')">
+                        <i class="ph ${isActive ? 'ph-check-circle text-teal-500' : 'ph-list'} mr-2"></i>
+                        ${list.name} (${list.items.length})
+                    </div>
+                    ${appData.lists.length > 1 ? `
+                    <button onclick="deleteList('${list.id}')" class="text-gray-400 hover:text-red-500 p-1 rounded transition">
+                        <i class="ph ph-trash"></i>
+                    </button>
+                    ` : ''}
+                `;
+                listsContainer.appendChild(li);
+            });
+
+            langSelect.value = appData.settings.lang;
+        }
+
+        function selectList(id) {
+            appData.currentListId = id;
+            saveData();
+            updateMenuUI();
+            updateShoppingUI();
+            switchView('view-shopping');
+        }
+
+        function createNewList() {
+            const name = newListInput.value.trim();
+            if (!name) return;
+            
+            const newList = {
+                id: 'list_' + Date.now(),
+                name: name,
+                items: []
+            };
+            
+            appData.lists.push(newList);
+            appData.currentListId = newList.id; // Direkt auswählen
+            newListInput.value = '';
+            
+            saveData();
+            updateMenuUI();
+            updateShoppingUI();
+            switchView('view-shopping');
+        }
+
+        function deleteList(id) {
+            if (confirm('Liste wirklich löschen?')) {
+                appData.lists = appData.lists.filter(l => l.id !== id);
+                if (appData.currentListId === id) {
+                    appData.currentListId = appData.lists[0].id;
+                }
+                saveData();
+                updateMenuUI();
+                updateShoppingUI();
+            }
+        }
+
+        function saveSettings() {
+            appData.settings.lang = langSelect.value;
+            if(recognition) recognition.lang = appData.settings.lang;
+            saveData();
+        }
+
+        function clearAllData() {
+            if (confirm('ACHTUNG: Willst du wirklich ALLE Listen und Daten unwiderruflich löschen?')) {
+                localStorage.removeItem('einkaufszettel_v2');
+                location.reload(); // App neustarten
+            }
+        }
+
+        // ==========================================
+        // 4. ITEM LOGIK (Hinzufügen, Abhaken, Löschen)
+        // ==========================================
+        const manualInput = document.getElementById('manual-input');
+
+        function addItem(text) {
+            const cleanText = text.trim();
+            if (!cleanText) return;
+            
+            const formattedText = cleanText.replace(/\.$/, '');
+            const currentList = getCurrentList();
+
+            currentList.items.push({
+                id: Date.now().toString(),
+                text: formattedText.charAt(0).toUpperCase() + formattedText.slice(1),
+                checked: false
+            });
+            
+            saveData();
+            updateMenuUI(); // Wegen Zähler in der Liste
+            updateShoppingUI();
+            manualInput.value = ''; 
+        }
+
+        function toggleItem(id) {
+            const currentList = getCurrentList();
+            const item = currentList.items.find(i => i.id === id);
+            if (item) item.checked = !item.checked;
+            saveData();
+            updateShoppingUI();
+        }
+
+        function deleteItem(id) {
+            const currentList = getCurrentList();
+            currentList.items = currentList.items.filter(item => item.id !== id);
+            saveData();
+            updateMenuUI();
+            updateShoppingUI();
+        }
+
+        // ==========================================
+        // 5. VIEW NAVIGATION
+        // ==========================================
+        function switchView(viewId) {
+            document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
+            document.getElementById(viewId).classList.add('active');
+            if (viewId === 'view-menu') updateMenuUI();
+        }
+
+
+        // ==========================================
+        // 6. SPRACHERKENNUNG
+        // ==========================================
+        const micBtn = document.getElementById('mic-btn');
+        const micIcon = document.getElementById('mic-icon');
+        const statusText = document.getElementById('status-text');
+        const addBtn = document.getElementById('add-btn');
+
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         let recognition = null;
         let isListening = false;
@@ -211,7 +419,6 @@
         if (SpeechRecognition) {
             recognition = new SpeechRecognition();
             recognition.continuous = false;
-            recognition.lang = 'de-DE'; // Auf Deutsch stellen
             recognition.interimResults = false;
             recognition.maxAlternatives = 1;
 
@@ -220,7 +427,7 @@
                 micBtn.classList.add('listening');
                 micIcon.classList.remove('ph-microphone');
                 micIcon.classList.add('ph-microphone-stage');
-                statusText.textContent = "Ich höre zu... (z.B. 'Brot')";
+                statusText.textContent = "Ich höre zu...";
                 statusText.classList.add('text-teal-600', 'font-medium');
             };
 
@@ -228,28 +435,20 @@
                 const transcript = event.results[0][0].transcript;
                 addItem(transcript);
                 statusText.textContent = `"${transcript}" hinzugefügt!`;
-                
-                // Nach 2 Sekunden Text wieder ausblenden
-                setTimeout(() => {
-                    if(!isListening) statusText.textContent = "";
-                }, 2000);
+                setTimeout(() => { if(!isListening) statusText.textContent = ""; }, 2000);
             };
 
             recognition.onerror = function(event) {
                 console.error("Spracherkennung Fehler:", event.error);
-                statusText.textContent = "Fehler beim Hören. Bitte erneut versuchen.";
-                statusText.classList.remove('text-teal-600', 'font-medium');
-                statusText.classList.add('text-red-500');
+                statusText.textContent = "Fehler. Bitte erneut versuchen.";
+                statusText.className = "text-center text-sm text-red-500 mb-3 h-5 transition-opacity";
                 stopListening();
+                setTimeout(() => { if(!isListening) statusText.textContent = ""; }, 3000);
             };
 
-            recognition.onend = function() {
-                stopListening();
-            };
+            recognition.onend = function() { stopListening(); };
         } else {
-            // Browser unterstützt keine Spracherkennung
             micBtn.style.display = 'none';
-            statusText.textContent = "Spracherkennung in diesem Browser nicht unterstützt.";
         }
 
         function stopListening() {
@@ -257,43 +456,87 @@
             micBtn.classList.remove('listening');
             micIcon.classList.add('ph-microphone');
             micIcon.classList.remove('ph-microphone-stage');
-            if(statusText.textContent.includes("Ich höre zu")) {
-                statusText.textContent = "";
-            }
+            if(statusText.textContent.includes("Ich höre zu")) statusText.textContent = "";
         }
 
-        // Event Listener für Buttons
         micBtn.addEventListener('click', () => {
-            if (!recognition) {
-                statusText.textContent = "Spracherkennung wird von diesem Browser leider nicht unterstützt (bitte Safari/Chrome nutzen).";
-                statusText.classList.remove('text-teal-600', 'font-medium');
-                statusText.classList.add('text-red-500');
-                return;
+            if (!recognition) return alert("Browser unterstützt keine Spracheingabe.");
+            if (isListening) { recognition.stop(); } 
+            else { 
+                recognition.lang = appData.settings.lang;
+                recognition.start(); 
             }
-            
-            if (isListening) {
-                recognition.stop();
-            } else {
-                try {
-                    recognition.start();
-                } catch(e) {
-                    console.log("Erkennung läuft bereits");
+        });
+
+        addBtn.addEventListener('click', () => addItem(manualInput.value));
+        manualInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') addItem(manualInput.value); });
+
+
+        // ==========================================
+        // 7. PWA (APP INSTALLIEREN) LOGIK (Single-File Trick)
+        // ==========================================
+        
+        // 7.1 Manifest on-the-fly generieren
+        const manifest = {
+            name: "Einkaufszettel",
+            short_name: "Einkauf",
+            display: "standalone",
+            background_color: "#f3f4f6",
+            theme_color: "#0d9488",
+            start_url: location.href,
+            icons: [{
+                // Ein einfaches SVG Icon als Base64 kodiert
+                src: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNTYgMjU2Ij48cmVjdCB3aWR0aD0iMjU2IiBoZWlnaHQ9IjI1NiIgZmlsbD0iIzBkOTQ4OCIvPjxjaXJjbGUgY3g9Ijg4IiBjeT0iMjE2IiByPSIxNiIgZmlsbD0id2hpdGUiLz48Y2lyY2xlIGN4PSIxNjgiIGN5PSIyMTYiIHI9IjE2IiBmaWxsPSJ3aGl0ZSIvPjxwYXRoIGQ9Ik0yMi45LDM4LjFBMjQsMjQsMCwwLDAsMTYsMjRIOEE4LDgsMCwwLDEsOCw4aDhBNDAsNDAsMCwwLDEsNDcuMSwzMy42TDU3LjMsNTRIMjI0YTE2LjEsMTYuMSwwLDAsMSwxNC43LDIyLjFsLTI0LDY0QTE2LDE2LDAsMCwxLDIwMCwxNTJIODQuN0wzOC40LDQ3WiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBzdHJva2Utd2lkdGg9IjE2Ii8+PC9zdmc+",
+                sizes: "512x512",
+                type: "image/svg+xml",
+                purpose: "any maskable"
+            }]
+        };
+        const manifestBlob = new Blob([JSON.stringify(manifest)], {type: 'application/json'});
+        document.getElementById('manifest-link').href = URL.createObjectURL(manifestBlob);
+
+        // 7.2 Service Worker Dummy registrieren (wird von Chrome für den Install-Prompt gefordert)
+        if ('serviceWorker' in navigator) {
+            const swCode = `
+                self.addEventListener('install', (e) => self.skipWaiting());
+                self.addEventListener('activate', (e) => e.waitUntil(clients.claim()));
+                self.addEventListener('fetch', (e) => {}); // Leerer Fetch-Handler reicht meist aus
+            `;
+            const swBlob = new Blob([swCode], {type: 'application/javascript'});
+            navigator.serviceWorker.register(URL.createObjectURL(swBlob)).catch(err => console.log('SW Info:', err));
+        }
+
+        // 7.3 Install Prompt abfangen und Button anzeigen
+        let deferredPrompt;
+        const installContainer = document.getElementById('install-container');
+        const installBtn = document.getElementById('install-btn');
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            // Standard-Prompt des Browsers unterdrücken
+            e.preventDefault();
+            // Event speichern, um es später auszulösen
+            deferredPrompt = e;
+            // Unseren custom "Installieren" Button im Menü anzeigen
+            installContainer.classList.remove('hidden');
+        });
+
+        installBtn.addEventListener('click', async () => {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                if (outcome === 'accepted') {
+                    installContainer.classList.add('hidden'); // Verstecken nach erfolgreicher Installation
                 }
+                deferredPrompt = null;
             }
         });
 
-        addBtn.addEventListener('click', () => {
-            addItem(manualInput.value);
-        });
 
-        manualInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                addItem(manualInput.value);
-            }
-        });
-
-        // Initiale UI laden
-        updateUI();
+        // ==========================================
+        // INITIALISIERUNG
+        // ==========================================
+        loadData();
+        updateShoppingUI();
 
     </script>
 </body>
