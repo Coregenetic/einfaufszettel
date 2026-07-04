@@ -49,9 +49,8 @@
       </div>
       <div class="px-6 pb-3 flex items-center gap-2">
         <i class="ph ph-storefront text-white/80"></i>
-        <select id="store-select-active" onchange="onActiveStoreChange(this.value)" class="bg-white/20 text-white text-sm rounded-lg px-2 py-1 border border-white/30 outline-none font-bold"></select>
-        <span class="text-xs text-white/70">sortiert die Liste nach Gang</span>
-        <button onclick="switchTab('view-setup')" class="ml-auto text-xs text-white/80 underline shrink-0">Reihenfolge ändern</button>
+        <select id="market-filter" onchange="onMarketFilterChange(this.value)" class="bg-white/20 text-white text-sm rounded-lg px-2 py-1 border border-white/30 outline-none font-bold"></select>
+        <button onclick="switchTab('view-setup')" class="ml-auto text-xs text-white/80 underline shrink-0">Märkte verwalten</button>
       </div>
     </header>
 
@@ -59,7 +58,7 @@
 
     <div class="bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 p-4">
       <div id="favorite-chips" class="flex gap-2 overflow-x-auto no-scrollbar mb-2 pb-1"></div>
-      <select id="category-select" class="w-full mb-2 bg-white dark:bg-gray-800 text-sm font-bold p-2 rounded-lg border dark:border-gray-700 dark:text-white"></select>
+      <select id="item-store-select" class="w-full mb-2 bg-white dark:bg-gray-800 text-sm font-bold p-2 rounded-lg border dark:border-gray-700 dark:text-white"></select>
       <div class="flex gap-2">
         <input type="text" id="manual-input" placeholder="Artikel..." class="flex-1 p-3 rounded-xl bg-gray-100 dark:bg-gray-800 dark:text-white outline-none">
         <button id="mic-btn" class="w-12 h-12 bg-[var(--accent)] text-white rounded-xl flex items-center justify-center shrink-0 transition-colors"><i class="ph ph-microphone text-xl"></i></button>
@@ -82,12 +81,13 @@
       </div>
 
       <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm space-y-3">
-        <h3 class="font-bold dark:text-white flex items-center gap-2"><i class="ph ph-map-pin-line"></i> Gang-Reihenfolge pro Markt</h3>
+        <h3 class="font-bold dark:text-white flex items-center gap-2"><i class="ph ph-storefront"></i> Märkte verwalten</h3>
+        <p class="text-xs text-gray-500 dark:text-gray-400">Reihenfolge = Reihenfolge der Abschnitte in der Einkaufsliste.</p>
+        <div id="market-manage-list" class="space-y-1"></div>
         <div class="flex gap-2">
-          <select id="aisle-store-select" onchange="renderAisleOrder()" class="flex-1 bg-gray-100 dark:bg-gray-700 dark:text-white p-2 rounded-lg text-sm"></select>
-          <button onclick="promptNewStore()" class="px-3 bg-[var(--accent)] text-white rounded-lg text-sm font-bold">+ Markt</button>
+          <input id="new-market-input" type="text" placeholder="z.B. Edeka" class="flex-1 bg-gray-100 dark:bg-gray-700 dark:text-white p-2 rounded-lg text-sm outline-none">
+          <button onclick="addMarketFromSetup()" class="px-3 bg-[var(--accent)] text-white rounded-lg text-sm font-bold">+ Markt</button>
         </div>
-        <div id="aisle-order-list" class="space-y-1"></div>
       </div>
 
       <div class="flex justify-between items-center bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm">
@@ -134,20 +134,8 @@
 </div>
 
 <script>
-const DEFAULT_CATEGORIES = ["Obst & Gemüse","Brot & Backwaren","Milchprodukte & Eier","Fleisch, Wurst & Fisch","Tiefkühl","Konserven & Trockenware","Getränke","Süßes & Snacks","Drogerie & Hygiene","Haushalt","Sonstiges"];
-const CATEGORY_ICON = {"Obst & Gemüse":"🥦","Brot & Backwaren":"🍞","Milchprodukte & Eier":"🥛","Fleisch, Wurst & Fisch":"🥩","Tiefkühl":"🧊","Konserven & Trockenware":"🥫","Getränke":"🥤","Süßes & Snacks":"🍫","Drogerie & Hygiene":"🧴","Haushalt":"🧽","Sonstiges":"📦"};
-const CATEGORY_KEYWORDS = {
-  "Obst & Gemüse": ["apfel","banane","tomate","gurke","kartoffel","zwiebel","salat","paprika","zitrone","möhre","karotte","obst","gemüse","knoblauch","pilz","birne","trauben","avocado"],
-  "Brot & Backwaren": ["brot","brötchen","toast","baguette","kuchen","gebäck","croissant"],
-  "Milchprodukte & Eier": ["milch","käse","joghurt","butter","quark","sahne","ei","eier"],
-  "Fleisch, Wurst & Fisch": ["fleisch","wurst","schinken","hähnchen","huhn","rind","schwein","fisch","lachs","salami","speck"],
-  "Tiefkühl": ["tiefkühl","pizza","eis","tk"],
-  "Konserven & Trockenware": ["nudeln","reis","mehl","zucker","dose","konserve","müsli","haferflocken","salz"],
-  "Getränke": ["wasser","saft","cola","bier","wein","limo","getränk","kaffee","tee"],
-  "Süßes & Snacks": ["schokolade","chips","süßigkeit","gummibär","keks","kekse"],
-  "Drogerie & Hygiene": ["shampoo","zahnpasta","seife","duschgel","klopapier","toilettenpapier","deo","binden"],
-  "Haushalt": ["spülmittel","waschmittel","müllbeutel","batterie","reiniger","schwamm"]
-};
+const MARKET_ICON = {"Aldi":"🔵","Lidl":"🟡","Rewe":"🔴","Edeka":"🟨","Kaufland":"🟥","Penny":"🟩","Netto":"🟧","dm":"💊","Rossmann":"🧴","Sonstiges":"🏬"};
+const FALLBACK_MARKET = "Sonstiges";
 const LIST_EMOJIS = ["📝","🛒","🎉","🏠","🎄","🍺","☕","🐾"];
 
 const NUMBER_WORDS = { "ein":1,"eine":1,"einen":1,"zwei":2,"drei":3,"vier":4,"fünf":5,"sechs":6,"sieben":7,"acht":8,"neun":9,"zehn":10,"elf":11,"zwölf":12 };
@@ -172,13 +160,13 @@ function parseQuantity(raw) {
 let appData = {
   lists: [{ id: 'l1', name: 'Standard', icon: '📝', items: [] }],
   activeListId: 'l1',
-  stores: { "Aldi": [...DEFAULT_CATEGORIES], "Lidl": [...DEFAULT_CATEGORIES], "Rewe": [...DEFAULT_CATEGORIES] },
-  activeStoreId: 'Aldi',
+  markets: ["Aldi", "Lidl", "Rewe"],
   itemHistory: {},
   settings: { darkMode: false, accentColor: '#0d9488' }
 };
 let wakeLock = null;
 let lastUndoTimeout = null;
+let activeMarketFilter = null;
 
 function getActiveList() { return appData.lists.find(l => l.id === appData.activeListId) || appData.lists[0]; }
 
@@ -241,15 +229,20 @@ function loadData() {
     try {
       const parsed = JSON.parse(saved);
       appData = parsed;
-      if (!appData.stores) appData.stores = { "Aldi": [...DEFAULT_CATEGORIES], "Lidl": [...DEFAULT_CATEGORIES], "Rewe": [...DEFAULT_CATEGORIES] };
-      if (!appData.activeStoreId) appData.activeStoreId = Object.keys(appData.stores)[0];
+      if (!appData.markets) {
+        // Migration von der alten Kategorie-Version: Märkte aus appData.stores übernehmen, falls vorhanden
+        appData.markets = appData.stores ? Object.keys(appData.stores) : ["Aldi", "Lidl", "Rewe"];
+        delete appData.stores;
+        delete appData.activeStoreId;
+      }
       if (!appData.settings) appData.settings = { darkMode: false };
       if (!appData.settings.accentColor) appData.settings.accentColor = '#0d9488';
       if (!appData.itemHistory) appData.itemHistory = {};
       appData.lists.forEach(list => {
         if (!list.icon) list.icon = '📝';
         list.items.forEach(item => {
-          if (!item.category) { item.category = guessCategory(item.name); delete item.store; }
+          if (item.category !== undefined) { item.store = null; delete item.category; }
+          if (item.store === undefined) item.store = null;
           if (item.qty === undefined) item.qty = null;
           if (item.price === undefined) item.price = null;
         });
@@ -260,22 +253,19 @@ function loadData() {
   applyAccentColor(appData.settings.accentColor);
 }
 
-function recordHistory(name, category) {
+function recordHistory(name, store) {
   const key = name.toLowerCase();
-  const entry = appData.itemHistory[key] || { count: 0, category, display: name };
+  const entry = appData.itemHistory[key] || { count: 0, store, display: name };
   entry.count += 1;
-  entry.category = category;
+  entry.store = store;
   entry.display = name;
   appData.itemHistory[key] = entry;
 }
 
-function guessCategory(name) {
+function guessStore(name) {
   const lower = (name || '').toLowerCase();
-  if (appData.itemHistory && appData.itemHistory[lower]) return appData.itemHistory[lower].category;
-  for (const cat in CATEGORY_KEYWORDS) {
-    if (CATEGORY_KEYWORDS[cat].some(k => lower.includes(k))) return cat;
-  }
-  return "Sonstiges";
+  if (appData.itemHistory && appData.itemHistory[lower]) return appData.itemHistory[lower].store;
+  return null;
 }
 
 const ACCENT_PRESETS = ['#0d9488', '#dc2626', '#7c3aed', '#2563eb', '#ea580c', '#db2777', '#65a30d', '#0f172a'];
@@ -343,7 +333,7 @@ function switchTab(tabId) {
   document.getElementById('tab-shopping').classList.toggle('text-gray-400', tabId !== 'view-shopping');
   document.getElementById('tab-setup').classList.toggle('text-[var(--accent)]', tabId === 'view-setup');
   document.getElementById('tab-setup').classList.toggle('text-gray-400', tabId !== 'view-setup');
-  if (tabId === 'view-setup') { populateAisleStoreSelect(); renderAisleOrder(); renderAccentPresets(); }
+  if (tabId === 'view-setup') { renderMarketManageList(); renderAccentPresets(); }
 }
 
 /* ---------- LISTS ---------- */
@@ -415,89 +405,81 @@ function deleteList(id) {
   saveData(); closeModal(); renderListChips(); renderShoppingList();
 }
 
-/* ---------- STORES / AISLE ORDER ---------- */
-function populateStoreSelectActive() {
-  const sel = document.getElementById('store-select-active');
-  sel.innerHTML = Object.keys(appData.stores).map(s => `<option value="${s}" ${s === appData.activeStoreId ? 'selected' : ''}>${s}</option>`).join('') + `<option value="__new__">+ Neuer Markt</option>`;
+/* ---------- MÄRKTE ---------- */
+function populateMarketFilter() {
+  const sel = document.getElementById('market-filter');
+  const current = activeMarketFilter;
+  sel.innerHTML = `<option value="">Alle Märkte</option>` +
+    appData.markets.map(m => `<option value="${m}" ${m === current ? 'selected' : ''}>${MARKET_ICON[m] || '🏬'} ${m}</option>`).join('') +
+    `<option value="${FALLBACK_MARKET}" ${current === FALLBACK_MARKET ? 'selected' : ''}>${MARKET_ICON[FALLBACK_MARKET]} ${FALLBACK_MARKET}</option>`;
 }
-function onActiveStoreChange(val) {
-  if (val === '__new__') { promptNewStore(true); return; }
-  appData.activeStoreId = val; saveData(); renderShoppingList();
+function onMarketFilterChange(val) { activeMarketFilter = val || null; renderShoppingList(); }
+
+function populateItemStoreSelect() {
+  const sel = document.getElementById('item-store-select');
+  const prev = sel.value;
+  sel.innerHTML = appData.markets.map(m => `<option value="${m}">${MARKET_ICON[m] || '🏬'} ${m}</option>`).join('') +
+    `<option value="${FALLBACK_MARKET}">${MARKET_ICON[FALLBACK_MARKET]} ${FALLBACK_MARKET}</option>`;
+  if (appData.markets.includes(prev) || prev === FALLBACK_MARKET) sel.value = prev;
 }
-function promptNewStore(fromHeader) {
-  openModal(`
-    <h3 class="font-bold text-lg dark:text-white">Neuer Markt</h3>
-    <input id="new-store-name" type="text" placeholder="z.B. Edeka" class="w-full p-3 rounded-xl bg-gray-100 dark:bg-gray-800 dark:text-white outline-none">
-    <div class="flex gap-2 pt-2">
-      <button class="flex-1 p-3 bg-gray-200 dark:bg-gray-700 dark:text-white rounded-xl font-bold" onclick="closeModal(); ${fromHeader ? 'populateStoreSelectActive();' : ''}">Abbrechen</button>
-      <button class="flex-1 p-3 bg-[var(--accent)] text-white rounded-xl font-bold" onclick="createNewStore(${!!fromHeader})">Erstellen</button>
-    </div>
-  `);
+
+function addMarketFromSetup() {
+  const input = document.getElementById('new-market-input');
+  const name = input.value.trim();
+  if (!name || appData.markets.includes(name) || name === FALLBACK_MARKET) { input.value = ''; return; }
+  appData.markets.push(name);
+  input.value = '';
+  saveData(); renderMarketManageList(); populateMarketFilter(); populateItemStoreSelect(); renderShoppingList();
 }
-function createNewStore(fromHeader) {
-  const name = document.getElementById('new-store-name').value.trim();
-  if (!name || appData.stores[name]) { closeModal(); return; }
-  appData.stores[name] = [...DEFAULT_CATEGORIES];
-  if (fromHeader) appData.activeStoreId = name;
-  saveData(); closeModal();
-  populateStoreSelectActive(); populateAisleStoreSelect(); renderAisleOrder(); renderShoppingList();
+function moveMarket(index, dir) {
+  const newIndex = index + dir;
+  if (newIndex < 0 || newIndex >= appData.markets.length) return;
+  [appData.markets[index], appData.markets[newIndex]] = [appData.markets[newIndex], appData.markets[index]];
+  saveData(); renderMarketManageList(); populateMarketFilter(); populateItemStoreSelect(); renderShoppingList();
 }
-function populateAisleStoreSelect() {
-  const sel = document.getElementById('aisle-store-select');
-  const current = sel.value && appData.stores[sel.value] ? sel.value : Object.keys(appData.stores)[0];
-  sel.innerHTML = Object.keys(appData.stores).map(s => `<option value="${s}" ${s === current ? 'selected' : ''}>${s}</option>`).join('');
+function deleteMarket(index) {
+  appData.markets.splice(index, 1);
+  saveData(); renderMarketManageList(); populateMarketFilter(); populateItemStoreSelect(); renderShoppingList();
 }
-function renderAisleOrder() {
-  const storeName = document.getElementById('aisle-store-select').value;
-  const order = appData.stores[storeName];
-  if (!order) return;
-  document.getElementById('aisle-order-list').innerHTML = order.map((cat, i) => `
+function renderMarketManageList() {
+  const container = document.getElementById('market-manage-list');
+  if (!container) return;
+  container.innerHTML = appData.markets.map((m, i) => `
     <div class="flex items-center justify-between bg-gray-100 dark:bg-gray-700 rounded-lg p-2">
-      <span class="text-sm dark:text-white">${CATEGORY_ICON[cat] || '📦'} ${cat}</span>
+      <span class="text-sm dark:text-white">${MARKET_ICON[m] || '🏬'} ${escapeHtml(m)}</span>
       <div class="flex gap-1">
-        <button onclick="moveCategory('${storeName}',${i},-1)" class="w-7 h-7 bg-white dark:bg-gray-600 rounded-md flex items-center justify-center ${i === 0 ? 'opacity-30 pointer-events-none' : ''}"><i class="ph ph-caret-up text-xs"></i></button>
-        <button onclick="moveCategory('${storeName}',${i},1)" class="w-7 h-7 bg-white dark:bg-gray-600 rounded-md flex items-center justify-center ${i === order.length - 1 ? 'opacity-30 pointer-events-none' : ''}"><i class="ph ph-caret-down text-xs"></i></button>
+        <button onclick="moveMarket(${i},-1)" class="w-7 h-7 bg-white dark:bg-gray-600 rounded-md flex items-center justify-center ${i === 0 ? 'opacity-30 pointer-events-none' : ''}"><i class="ph ph-caret-up text-xs"></i></button>
+        <button onclick="moveMarket(${i},1)" class="w-7 h-7 bg-white dark:bg-gray-600 rounded-md flex items-center justify-center ${i === appData.markets.length - 1 ? 'opacity-30 pointer-events-none' : ''}"><i class="ph ph-caret-down text-xs"></i></button>
+        <button onclick="deleteMarket(${i})" class="w-7 h-7 bg-red-100 dark:bg-red-900/30 text-red-500 rounded-md flex items-center justify-center"><i class="ph ph-trash text-xs"></i></button>
       </div>
     </div>
   `).join('');
 }
-function moveCategory(storeName, index, dir) {
-  const order = appData.stores[storeName];
-  const newIndex = index + dir;
-  if (newIndex < 0 || newIndex >= order.length) return;
-  [order[index], order[newIndex]] = [order[newIndex], order[index]];
-  saveData(); renderAisleOrder();
-  if (storeName === appData.activeStoreId) renderShoppingList();
-}
 
 /* ---------- ITEMS ---------- */
-function populateCategorySelect() {
-  document.getElementById('category-select').innerHTML = DEFAULT_CATEGORIES.map(c => `<option value="${c}">${CATEGORY_ICON[c]} ${c}</option>`).join('');
-}
-
-function addItem(rawText, category) {
+function addItem(rawText, store) {
   rawText = rawText.trim();
   if (!rawText) return;
   const { qty, name } = parseQuantity(rawText);
   if (!name) return;
   const list = getActiveList();
-  const finalCategory = category || guessCategory(name);
-  recordHistory(name, finalCategory);
+  const finalStore = store || guessStore(name) || appData.markets[0] || FALLBACK_MARKET;
+  recordHistory(name, finalStore);
 
-  // Bereits vorhandenen, noch offenen Artikel mit gleichem Namen/Kategorie erweitern statt duplizieren
-  const existing = list.items.find(i => !i.done && i.name.toLowerCase() === name.toLowerCase() && i.category === finalCategory);
+  // Bereits vorhandenen, noch offenen Artikel mit gleichem Namen/Markt erweitern statt duplizieren
+  const existing = list.items.find(i => !i.done && i.name.toLowerCase() === name.toLowerCase() && i.store === finalStore);
   if (existing && qty) {
     existing.qty = qty;
     saveData(); renderShoppingList(); renderFavoriteChips();
     return;
   }
-  list.items.push({ id: 'i' + Date.now() + Math.random().toString(36).slice(2, 6), name, qty: qty || null, price: null, category: finalCategory, done: false });
+  list.items.push({ id: 'i' + Date.now() + Math.random().toString(36).slice(2, 6), name, qty: qty || null, price: null, store: finalStore, done: false });
   saveData(); renderShoppingList(); renderFavoriteChips();
 }
 
-function addFavorite(name, category) {
+function addFavorite(name, store) {
   document.getElementById('manual-input').value = '';
-  addItem(name, category);
+  addItem(name, store);
 }
 
 function openEditItemModal(id) {
@@ -510,8 +492,9 @@ function openEditItemModal(id) {
       <input id="edit-item-qty" type="text" value="${item.qty ? escapeHtml(item.qty) : ''}" placeholder="Menge (z.B. 2 kg, 3x)" class="flex-1 p-3 rounded-xl bg-gray-100 dark:bg-gray-800 dark:text-white outline-none">
       <input id="edit-item-price" type="number" step="0.01" min="0" value="${item.price ?? ''}" placeholder="Preis €" class="w-28 p-3 rounded-xl bg-gray-100 dark:bg-gray-800 dark:text-white outline-none">
     </div>
-    <select id="edit-item-category" class="w-full p-3 rounded-xl bg-gray-100 dark:bg-gray-800 dark:text-white outline-none">
-      ${DEFAULT_CATEGORIES.map(c => `<option value="${c}" ${c === item.category ? 'selected' : ''}>${CATEGORY_ICON[c]} ${c}</option>`).join('')}
+    <select id="edit-item-store" class="w-full p-3 rounded-xl bg-gray-100 dark:bg-gray-800 dark:text-white outline-none">
+      ${appData.markets.map(m => `<option value="${m}" ${m === item.store ? 'selected' : ''}>${MARKET_ICON[m] || '🏬'} ${m}</option>`).join('')}
+      <option value="${FALLBACK_MARKET}" ${item.store === FALLBACK_MARKET ? 'selected' : ''}>${MARKET_ICON[FALLBACK_MARKET]} ${FALLBACK_MARKET}</option>
     </select>
     <div class="flex gap-2 pt-2">
       <button class="flex-1 p-3 bg-gray-200 dark:bg-gray-700 dark:text-white rounded-xl font-bold" onclick="closeModal()">Abbrechen</button>
@@ -528,8 +511,8 @@ function saveEditItem(id) {
   item.qty = document.getElementById('edit-item-qty').value.trim() || null;
   const priceVal = document.getElementById('edit-item-price').value;
   item.price = priceVal !== '' ? parseFloat(priceVal) : null;
-  item.category = document.getElementById('edit-item-category').value;
-  recordHistory(name, item.category);
+  item.store = document.getElementById('edit-item-store').value;
+  recordHistory(name, item.store);
   saveData(); closeModal(); renderShoppingList(); renderFavoriteChips();
 }
 
@@ -594,20 +577,27 @@ function renderShoppingList() {
     return;
   }
 
-  const order = appData.stores[appData.activeStoreId] || DEFAULT_CATEGORIES;
-  const groups = {};
-  list.items.forEach(item => { (groups[item.category] ||= []).push(item); });
+  const order = [...appData.markets, FALLBACK_MARKET];
+  const relevantItems = activeMarketFilter ? list.items.filter(i => (i.store || FALLBACK_MARKET) === activeMarketFilter) : list.items;
 
-  const sortedCats = Object.keys(groups).sort((a, b) => {
-    const ia = order.indexOf(a), ib = order.indexOf(b);
-    return (ia === -1 ? 999 : ia) - (ib === -1 ? 999 : ib);
+  if (activeMarketFilter && relevantItems.length === 0) {
+    container.innerHTML = `<p class="text-center text-gray-400 mt-8">Keine Artikel für ${escapeHtml(activeMarketFilter)}.</p>`;
+    return;
+  }
+
+  const groups = {};
+  relevantItems.forEach(item => {
+    const key = (item.store && appData.markets.includes(item.store)) ? item.store : FALLBACK_MARKET;
+    (groups[key] ||= []).push(item);
   });
 
+  const sortedMarkets = Object.keys(groups).sort((a, b) => order.indexOf(a) - order.indexOf(b));
+
   let rowIndex = 0;
-  container.innerHTML = sortedCats.map(cat => `
+  container.innerHTML = sortedMarkets.map(market => `
     <div class="mb-3">
-      <p class="text-xs font-bold uppercase text-gray-400 mb-1">${CATEGORY_ICON[cat] || '📦'} ${cat}</p>
-      ${groups[cat].map(item => {
+      <p class="text-xs font-bold uppercase text-gray-400 mb-1">${MARKET_ICON[market] || '🏬'} ${market}</p>
+      ${groups[market].map(item => {
         const delay = (rowIndex++ * 25);
         return `
         <div class="relative overflow-hidden rounded-xl mb-1">
@@ -673,8 +663,8 @@ function renderFavoriteChips() {
   if (top.length === 0) { container.innerHTML = ''; return; }
   container.innerHTML = top.map(([key, entry]) => `
     <button class="shrink-0 text-xs font-bold px-3 py-1.5 rounded-full bg-[var(--accent-soft)] dark:bg-[var(--accent-soft-strong)] text-[var(--accent-strong)] dark:text-[var(--accent)] flex items-center gap-1"
-      onclick="addFavorite('${escapeHtml(entry.display).replace(/'/g, "\\'")}', '${entry.category}')">
-      <i class="ph ph-plus text-xs"></i>${CATEGORY_ICON[entry.category] || ''} ${escapeHtml(entry.display)}
+      onclick="addFavorite('${escapeHtml(entry.display).replace(/'/g, "\\'")}', '${entry.store || ''}')">
+      <i class="ph ph-plus text-xs"></i>${MARKET_ICON[entry.store] || ''} ${escapeHtml(entry.display)}
     </button>
   `).join('');
 }
@@ -708,14 +698,18 @@ function importData(event) {
       const parsed = JSON.parse(reader.result);
       if (!parsed.lists) throw new Error('Ungültiges Format');
       appData = parsed;
-      if (!appData.stores) appData.stores = { "Aldi": [...DEFAULT_CATEGORIES] };
-      if (!appData.activeStoreId) appData.activeStoreId = Object.keys(appData.stores)[0];
+      if (!appData.markets) appData.markets = parsed.stores ? Object.keys(parsed.stores) : ["Aldi", "Lidl", "Rewe"];
       if (!appData.settings) appData.settings = { darkMode: false, accentColor: '#0d9488' };
       if (!appData.settings.accentColor) appData.settings.accentColor = '#0d9488';
+      if (!appData.itemHistory) appData.itemHistory = {};
+      appData.lists.forEach(list => list.items.forEach(item => {
+        if (item.category !== undefined) { item.store = null; delete item.category; }
+        if (item.store === undefined) item.store = null;
+      }));
       saveData();
       document.documentElement.classList.toggle('dark', !!appData.settings.darkMode);
       applyAccentColor(appData.settings.accentColor);
-      populateStoreSelectActive(); renderListChips(); renderShoppingList(); renderFavoriteChips();
+      populateMarketFilter(); populateItemStoreSelect(); renderListChips(); renderShoppingList(); renderFavoriteChips();
       alert('Import erfolgreich!');
     } catch (e) { alert('Import fehlgeschlagen: Datei ungültig.'); }
   };
@@ -726,7 +720,7 @@ function importData(event) {
 /* ---------- INPUT: ENTER + MIC ---------- */
 document.getElementById('manual-input').addEventListener('keydown', (e) => {
   if (e.key === 'Enter') {
-    addItem(e.target.value, document.getElementById('category-select').value);
+    addItem(e.target.value, document.getElementById('item-store-select').value);
     e.target.value = '';
   }
 });
@@ -753,9 +747,8 @@ if (!checkStorageAvailable()) {
 }
 loadData();
 saveData();
-populateCategorySelect();
-populateStoreSelectActive();
-populateAisleStoreSelect();
+populateItemStoreSelect();
+populateMarketFilter();
 renderListChips();
 renderShoppingList();
 renderFavoriteChips();
