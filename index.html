@@ -1,276 +1,143 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="de" class="h-full">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Mein Einkaufszettel</title>
+    <title>Einkaufszettel Pro</title>
     
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Einkauf">
-    <meta name="mobile-web-app-capable" content="yes">
     <meta name="theme-color" content="#0d9488">
 
     <link id="manifest-link" rel="manifest" href="">
 
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+        }
+    </script>
     <style>
-        body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: #111827;
-            -webkit-tap-highlight-color: transparent;
-        }
-        
-        @keyframes pulse-ring {
-            0% { transform: scale(0.8); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
-            70% { transform: scale(1); box-shadow: 0 0 0 15px rgba(239, 68, 68, 0); }
-            100% { transform: scale(0.8); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
-        }
-        .listening { animation: pulse-ring 2s infinite; background-color: #ef4444 !important; color: white !important; }
-        
-        /* Views & Layout Fixes */
+        body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
         .view { display: none; }
-        .view.active { display: flex; flex-direction: column; flex: 1; height: 100%; min-height: 0; }
+        .view.active { display: flex; flex-direction: column; }
         .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
-        
-        /* Slide-In Settings Animation */
-        #settings-overlay { opacity: 0; pointer-events: none; transition: opacity 0.3s ease; }
-        #settings-overlay.open { opacity: 1; pointer-events: auto; }
-        #settings-panel { transform: translateX(100%); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
-        #settings-panel.open { transform: translateX(0); }
-        
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
-<body class="text-gray-800 antialiased h-screen w-screen overflow-hidden flex justify-center bg-gray-900">
+<body class="h-full w-full bg-gray-50 dark:bg-gray-900 overflow-hidden flex justify-center">
 
-    <div class="max-w-md w-full bg-gray-50 h-full shadow-2xl relative flex flex-col overflow-hidden">
-
-        <!-- VIEW 1: EINKAUFSZETTEL -->
-        <div id="view-shopping" class="view active">
-            <header class="bg-teal-600 text-white pt-6 pb-4 px-5 z-10 flex-shrink-0 flex justify-between items-center shadow-md">
-                <div class="flex-1 min-w-0">
-                    <h1 class="text-xl font-bold truncate pr-2" id="current-list-title">Lade...</h1>
-                    <p class="text-teal-100 text-xs mt-0.5" id="item-count">0 Artikel</p>
-                </div>
-                <button onclick="DatabaseModule.archiveCurrentList()" class="bg-teal-700/50 hover:bg-teal-700 text-white rounded-full p-2.5 transition flex-shrink-0 flex items-center justify-center">
-                    <i class="ph ph-check-circle text-2xl"></i>
-                </button>
+    <div class="max-w-md w-full bg-white dark:bg-gray-950 h-full shadow-2xl relative flex flex-col overflow-hidden">
+        
+        <!-- VIEW: EINKAUF -->
+        <div id="view-shopping" class="view active h-full w-full flex-col">
+            <header class="bg-teal-600 dark:bg-teal-800 text-white p-6 shadow-md z-10">
+                <h1 class="text-2xl font-bold" id="current-list-title">Lade Liste...</h1>
+                <p class="text-teal-100 text-sm" id="item-count">0 Artikel</p>
             </header>
-
-            <main class="flex-1 overflow-y-auto no-scrollbar p-4 relative bg-gray-100/50">
-                <div id="shopping-list" class="space-y-4 pb-4"></div>
-                <div id="empty-state" class="flex flex-col items-center justify-center h-full text-gray-400 mt-10 absolute inset-0 pointer-events-none">
-                    <i class="ph ph-shopping-bag text-6xl mb-3 text-gray-300"></i>
-                    <p class="text-center font-medium">Dein Zettel ist leer.<br><span class="text-sm font-normal">Tippe auf das Mikrofon!</span></p>
-                </div>
-            </main>
-
-            <div class="bg-white border-t border-gray-200 px-4 py-3 shadow-[0_-5px_15px_rgba(0,0,0,0.03)] z-20 flex-shrink-0">
-                <div class="flex justify-between items-end mb-2">
-                    <div id="status-text" class="text-xs text-gray-400 font-medium h-4 truncate"></div>
-                    <select id="store-select" onchange="UIModule.updateStoreSelectUI()" class="bg-gray-100 text-gray-700 border-none text-xs font-bold rounded-lg py-1 px-2 focus:ring-0 cursor-pointer outline-none transition-colors">
-                        <option value="Allgemein">🛒 Allgemein</option>
-                        <option value="Aldi">🔵 Aldi</option>
-                        <option value="Lidl">🟡 Lidl</option>
-                        <option value="Rewe">🔴 Rewe</option>
-                        <option value="Edeka">💛 Edeka</option>
-                        <option value="Kaufland">🩸 Kaufland</option>
-                        <option value="Drogerie">🌸 Drogerie</option>
-                        <option value="Baumarkt">🔨 Baumarkt</option>
-                    </select>
-                </div>
-                <div class="flex items-center gap-3">
-                    <div class="relative flex-1">
-                        <input type="text" id="manual-input" placeholder="Artikel tippen..." 
-                               class="w-full bg-gray-100 border border-transparent rounded-2xl py-3.5 px-4 pr-12 focus:bg-white focus:border-teal-500 focus:outline-none transition-all text-sm">
-                        <button id="add-btn" class="absolute right-1.5 top-1.5 bottom-1.5 text-white rounded-xl w-10 flex items-center justify-center transition-colors">
-                            <i class="ph ph-plus text-lg"></i>
-                        </button>
-                    </div>
-                    <button id="mic-btn" class="w-12 h-12 rounded-2xl flex items-center justify-center shadow-sm transition-all focus:outline-none flex-shrink-0">
-                        <i class="ph ph-microphone text-2xl" id="mic-icon"></i>
-                    </button>
+            <main class="flex-1 overflow-y-auto p-4" id="shopping-list-container"></main>
+            <div class="bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 p-4">
+                <select id="store-select" class="w-full mb-2 bg-white dark:bg-gray-800 text-sm font-bold p-2 rounded-lg border dark:border-gray-700 dark:text-white">
+                    <option value="Allgemein">🛒 Allgemein</option>
+                    <option value="Aldi">🔵 Aldi</option>
+                    <option value="Lidl">🟡 Lidl</option>
+                    <option value="Rewe">🔴 Rewe</option>
+                </select>
+                <div class="flex gap-2">
+                    <input type="text" id="manual-input" placeholder="Artikel..." class="flex-1 p-3 rounded-xl bg-gray-100 dark:bg-gray-800 dark:text-white outline-none">
+                    <button id="mic-btn" class="w-12 h-12 bg-teal-600 text-white rounded-xl flex items-center justify-center"><i class="ph ph-microphone text-xl"></i></button>
                 </div>
             </div>
         </div>
 
-        <!-- VIEW 2: LISTEN & ARCHIV -->
-        <div id="view-lists" class="view h-full w-full bg-gray-50">
-            <header class="bg-white pt-6 pb-4 px-5 border-b shadow-sm flex-shrink-0 flex justify-between items-center">
-                <h1 class="text-xl font-bold text-gray-800">Listen & Archiv</h1>
-                <button onclick="UIModule.openSettings()" class="bg-gray-100 text-gray-600 hover:text-teal-600 rounded-full p-2.5 transition">
-                    <i class="ph ph-gear-six text-xl"></i>
-                </button>
-            </header>
-
-            <main class="flex-1 overflow-y-auto no-scrollbar p-5">
-                <h2 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 ml-1">Aktive Einkäufe</h2>
-                <ul id="lists-container" class="space-y-3 mb-8"></ul>
-                <div class="bg-white p-4 rounded-2xl shadow-sm mb-8">
-                    <h3 class="text-sm font-bold text-gray-600 mb-3">Neue Liste erstellen</h3>
-                    <div class="flex gap-2">
-                        <input type="text" id="new-list-input" placeholder="Name (z.B. Wochenende)" class="flex-1 bg-gray-50 border border-gray-200 rounded-xl py-2 px-3 focus:outline-none focus:border-teal-500 text-sm">
-                        <button onclick="DatabaseModule.createNewList()" class="bg-teal-600 text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-teal-700 transition">Neu</button>
-                    </div>
+        <!-- VIEW: LISTEN & SETUP -->
+        <div id="view-setup" class="view h-full w-full flex-col bg-gray-50 dark:bg-gray-900 p-6 overflow-y-auto">
+            <h2 class="text-xl font-bold mb-6 dark:text-white">Einstellungen & Sync</h2>
+            
+            <div class="space-y-4">
+                <div class="flex justify-between items-center bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm">
+                    <span class="dark:text-white">Dark Mode</span>
+                    <button onclick="toggleDarkMode()" class="p-2 bg-gray-200 dark:bg-gray-700 rounded-lg text-xl">🌙</button>
                 </div>
-            </main>
-        </div>
+                
+                <div class="flex justify-between items-center bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm">
+                    <span class="dark:text-white">Supermarkt-Modus (Display an)</span>
+                    <button onclick="toggleWakeLock()" id="wakelock-btn" class="p-2 bg-gray-200 dark:bg-gray-700 rounded-lg">OFF</button>
+                </div>
 
-        <!-- EINSTELLUNGEN OVERLAY -->
-        <div id="settings-overlay" class="absolute inset-0 bg-gray-900/40 z-50 flex justify-end">
-            <div class="absolute inset-0" onclick="UIModule.closeSettings()"></div>
-            <div id="settings-panel" class="relative w-[85%] max-w-[320px] bg-gray-50 h-full shadow-2xl flex flex-col z-10">
-                <header class="bg-white p-5 border-b flex-shrink-0 flex justify-between items-center">
-                    <h2 class="text-lg font-bold text-gray-800">Einstellungen</h2>
-                    <button onclick="UIModule.closeSettings()" class="text-gray-400 hover:text-gray-800 p-1 rounded-full transition">
-                        <i class="ph ph-x text-xl"></i>
-                    </button>
-                </header>
-                <main class="flex-1 overflow-y-auto p-5">
-                    <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 ml-1">System</h3>
-                    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm mb-6">
-                        <div class="p-3 border-b border-gray-50 flex items-center justify-between">
-                            <span class="text-gray-700 text-sm font-medium ml-1">Sprache</span>
-                            <select id="lang-select" onchange="DatabaseModule.saveSettings()" class="bg-gray-100 border-none text-sm font-medium rounded-lg py-1 px-2 outline-none">
-                                <option value="de-DE">DE</option>
-                                <option value="en-US">EN</option>
-                            </select>
-                        </div>
-                        <div class="p-3 flex items-center justify-between cursor-pointer hover:bg-red-50 transition" onclick="DatabaseModule.clearAllData()">
-                            <span class="text-red-500 text-sm font-medium ml-1">Alle Daten löschen</span>
-                            <i class="ph ph-trash text-red-500"></i>
-                        </div>
-                    </div>
-                </main>
+                <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm space-y-2">
+                    <h3 class="font-bold dark:text-white">GitHub Sync</h3>
+                    <input type="text" id="git-token" placeholder="GitHub Token" class="w-full p-2 bg-gray-100 dark:bg-gray-900 rounded-lg text-sm dark:text-white">
+                    <input type="text" id="git-repo" placeholder="user/repo" class="w-full p-2 bg-gray-100 dark:bg-gray-900 rounded-lg text-sm dark:text-white">
+                    <button onclick="syncToGit()" class="w-full p-2 bg-teal-600 text-white rounded-lg font-bold">Synchronisieren</button>
+                </div>
             </div>
         </div>
 
-        <nav class="bg-white border-t border-gray-200 flex pb-safe flex-shrink-0 z-30 shadow-[0_-5px_15px_-3px_rgba(0,0,0,0.05)]">
-            <button onclick="UIModule.switchTab('view-shopping')" id="tab-view-shopping" class="tab-btn flex-1 py-3.5 flex flex-col items-center gap-1 text-teal-600 transition relative">
-                <i class="ph ph-shopping-cart text-2xl"></i>
-                <span class="text-[10px] font-bold">Einkauf</span>
-                <div class="absolute top-0 w-1/3 h-1 bg-teal-600 rounded-b-full indicator"></div>
-            </button>
-            <button onclick="UIModule.switchTab('view-lists')" id="tab-view-lists" class="tab-btn flex-1 py-3.5 flex flex-col items-center gap-1 text-gray-400 hover:text-teal-500 transition relative">
-                <i class="ph ph-list-dashes text-2xl"></i>
-                <span class="text-[10px] font-bold">Listen</span>
-                <div class="absolute top-0 w-1/3 h-1 bg-transparent rounded-b-full indicator"></div>
-            </button>
+        <nav class="bg-white dark:bg-gray-950 border-t dark:border-gray-800 flex pb-safe">
+            <button onclick="switchTab('view-shopping')" class="flex-1 py-4 text-teal-600 font-bold">Einkauf</button>
+            <button onclick="switchTab('view-setup')" class="flex-1 py-4 text-gray-400 font-bold">Setup</button>
         </nav>
     </div>
 
     <script>
-        const STORE_BRANDS = {
-            "Allgemein": { color: "teal", bg: "bg-teal-50", text: "text-teal-700", border: "border-teal-100", btn: "bg-teal-600" },
-            "Aldi":      { color: "blue", bg: "bg-blue-50", text: "text-blue-700", border: "border-blue-100", btn: "bg-blue-600" },
-            "Lidl":      { color: "yellow", bg: "bg-yellow-50", text: "text-yellow-700", border: "border-yellow-100", btn: "bg-yellow-500" },
-            "Rewe":      { color: "red", bg: "bg-red-50", text: "text-red-700", border: "border-red-100", btn: "bg-red-600" },
-            "Edeka":     { color: "yellow", bg: "bg-yellow-50", text: "text-yellow-700", border: "border-yellow-100", btn: "bg-yellow-500" },
-            "Kaufland":  { color: "red", bg: "bg-red-50", text: "text-red-700", border: "border-red-100", btn: "bg-red-600" },
-            "Drogerie":  { color: "pink", bg: "bg-pink-50", text: "text-pink-700", border: "border-pink-100", btn: "bg-pink-500" },
-            "Baumarkt":  { color: "orange", bg: "bg-orange-50", text: "text-orange-700", border: "border-orange-100", btn: "bg-orange-500" }
-        };
+        let appData = { lists: [{ id: 'l1', name: 'Standard', items: [] }], settings: { darkMode: false } };
+        let wakeLock = null;
 
-        const DatabaseModule = {
-            data: { currentListId: 'list_1', settings: { lang: 'de-DE' }, lists: [ { id: 'list_1', name: 'Go Gurls Liste', items: [], archived: false, date: Date.now() } ] },
-            loadData: function() { const saved = localStorage.getItem('einkaufszettel_v4'); if (saved) this.data = JSON.parse(saved); this.saveData(); },
-            saveData: function() { localStorage.setItem('einkaufszettel_v4', JSON.stringify(this.data)); },
-            getCurrentList: function() { return this.data.lists.find(l => l.id === this.data.currentListId) || this.data.lists[0]; },
-            createNewList: function() { const input = document.getElementById('new-list-input'); const name = input.value.trim() || 'Neue Liste'; const newList = { id: 'list_' + Date.now(), name: name, items: [], archived: false, date: Date.now() }; this.data.lists.push(newList); this.data.currentListId = newList.id; input.value = ''; this.saveData(); UIModule.updateAll(); UIModule.switchTab('view-shopping'); },
-            archiveCurrentList: function() { const list = this.getCurrentList(); if(confirm(`'${list.name}' ins Archiv verschieben?`)) { list.archived = true; this.data.currentListId = this.data.lists.find(l => !l.archived)?.id || null; this.saveData(); UIModule.updateAll(); } },
-            saveSettings: function() { this.data.settings.lang = document.getElementById('lang-select').value; if(SpeechModule.recognition) SpeechModule.recognition.lang = this.data.settings.lang; this.saveData(); },
-            clearAllData: function() { if(confirm('Alles löschen?')) { localStorage.clear(); location.reload(); } }
-        };
+        function toggleDarkMode() {
+            document.documentElement.classList.toggle('dark');
+            appData.settings.darkMode = document.documentElement.classList.contains('dark');
+            saveData();
+        }
 
-        const UIModule = {
-            updateAll: function() { this.updateShoppingUI(); this.updateListsUI(); this.updateStoreSelectUI(); },
-            updateShoppingUI: function() {
-                const currentList = DatabaseModule.getCurrentList();
-                document.getElementById('current-list-title').textContent = currentList.name;
-                const listEl = document.getElementById('shopping-list');
-                const emptyEl = document.getElementById('empty-state');
-                listEl.innerHTML = '';
-                if (currentList.items.length === 0) emptyEl.style.display = 'flex';
-                else {
-                    emptyEl.style.display = 'none';
-                    const groups = {};
-                    currentList.items.forEach(item => { const store = item.store || 'Allgemein'; if (!groups[store]) groups[store] = []; groups[store].push(item); });
-                    Object.keys(groups).sort().forEach(storeName => {
-                        const brand = STORE_BRANDS[storeName] || STORE_BRANDS['Allgemein'];
-                        const card = document.createElement('div');
-                        card.className = `bg-white rounded-2xl shadow-sm border ${brand.border} overflow-hidden mb-4`;
-                        card.innerHTML = `<div class="${brand.bg} px-4 py-2 border-b border-gray-100"><span class="text-xs font-bold ${brand.text} uppercase tracking-wider">${storeName}</span></div>`;
-                        const ul = document.createElement('ul');
-                        groups[storeName].sort((a,b)=>a.checked-b.checked).forEach(item => {
-                            const li = document.createElement('li');
-                            li.className = `flex items-center justify-between px-4 py-3 ${item.checked ? 'opacity-50 bg-gray-50' : 'bg-white'}`;
-                            li.innerHTML = `
-                                <div class="flex items-center flex-1">
-                                    <input type="checkbox" class="custom-checkbox opacity-0 absolute" ${item.checked ? 'checked' : ''} onchange="InputModule.toggleItem('${item.id}')">
-                                    <div class="w-5 h-5 border-2 border-gray-300 rounded-full flex items-center justify-center mr-3"><svg class="w-3 h-3 text-white hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path d="M5 13l4 4L19 7"/></svg></div>
-                                    <span class="text-base ${item.checked ? 'line-through text-gray-400' : 'text-gray-800'}">${item.text}</span>
-                                </div>
-                                <button onclick="InputModule.deleteItem('${item.id}')" class="text-gray-300 hover:text-red-500"><i class="ph ph-x"></i></button>
-                            `;
-                            ul.appendChild(li);
-                        });
-                        card.appendChild(ul); listEl.appendChild(card);
-                    });
-                }
-            },
-            updateListsUI: function() {
-                const activeCont = document.getElementById('lists-container');
-                activeCont.innerHTML = '';
-                DatabaseModule.data.lists.filter(l => !l.archived).forEach(list => {
-                    const li = document.createElement('li');
-                    li.className = `p-4 rounded-2xl border cursor-pointer ${list.id === DatabaseModule.data.currentListId ? 'bg-teal-50 border-teal-200' : 'bg-white border-gray-100'}`;
-                    li.innerHTML = `<div class="font-bold" onclick="UIModule.selectList('${list.id}')">${list.name} (${list.items.length})</div>`;
-                    activeCont.appendChild(li);
-                });
-            },
-            openSettings: function() { document.getElementById('settings-overlay').classList.add('open'); setTimeout(() => document.getElementById('settings-panel').classList.add('open'), 10); },
-            closeSettings: function() { document.getElementById('settings-panel').classList.remove('open'); setTimeout(() => document.getElementById('settings-overlay').classList.remove('open'), 300); },
-            updateStoreSelectUI: function() {
-                const brand = STORE_BRANDS[document.getElementById('store-select').value];
-                document.getElementById('add-btn').className = `absolute right-1.5 top-1.5 bottom-1.5 ${brand.btn} text-white rounded-xl w-10 flex items-center justify-center transition-colors`;
-            },
-            selectList: function(id) { DatabaseModule.data.currentListId = id; DatabaseModule.saveData(); this.updateAll(); this.switchTab('view-shopping'); },
-            switchTab: function(viewId) {
-                document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
-                document.getElementById(viewId).classList.add('active');
-                document.querySelectorAll('.tab-btn').forEach(btn => { btn.classList.remove('text-teal-600'); btn.querySelector('.indicator').classList.replace('bg-teal-600', 'bg-transparent'); });
-                const activeBtn = document.getElementById('tab-' + viewId);
-                activeBtn.classList.add('text-teal-600');
-                activeBtn.querySelector('.indicator').classList.replace('bg-transparent', 'bg-teal-600');
+        async function toggleWakeLock() {
+            if (wakeLock) {
+                await wakeLock.release();
+                wakeLock = null;
+                document.getElementById('wakelock-btn').textContent = "OFF";
+            } else {
+                try {
+                    wakeLock = await navigator.wakeLock.request('screen');
+                    document.getElementById('wakelock-btn').textContent = "ON";
+                } catch (e) { alert("WakeLock nicht unterstützt."); }
             }
-        };
+        }
 
-        const InputModule = {
-            addItem: function(text) {
-                if(!text.trim()) return;
-                const currentList = DatabaseModule.getCurrentList();
-                currentList.items.push({ id: Date.now().toString(), text: text, store: document.getElementById('store-select').value, checked: false });
-                DatabaseModule.saveData(); UIModule.updateAll(); document.getElementById('manual-input').value = '';
-            },
-            toggleItem: function(id) { const item = DatabaseModule.getCurrentList().items.find(i => i.id === id); if(item) item.checked = !item.checked; DatabaseModule.saveData(); UIModule.updateShoppingUI(); },
-            deleteItem: function(id) { const list = DatabaseModule.getCurrentList(); list.items = list.items.filter(i => i.id !== id); DatabaseModule.saveData(); UIModule.updateAll(); }
-        };
+        async function syncToGit() {
+            const token = document.getElementById('git-token').value;
+            const repo = document.getElementById('git-repo').value;
+            const url = `https://api.github.com/repos/${repo}/contents/data.json`;
+            
+            // 1. Get current SHA to overwrite
+            const res = await fetch(url, { headers: { 'Authorization': `token ${token}` }});
+            const data = await res.json();
+            
+            // 2. Put update
+            await fetch(url, {
+                method: 'PUT',
+                headers: { 'Authorization': `token ${token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    message: "Update List",
+                    content: btoa(JSON.stringify(appData)),
+                    sha: data.sha
+                })
+            });
+            alert("Erfolgreich synchronisiert!");
+        }
 
-        const SpeechModule = {
-            init: function() {
-                const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-                if(SR) {
-                    this.recognition = new SR();
-                    this.recognition.onresult = (e) => InputModule.addItem(e.results[0][0].transcript);
-                    document.getElementById('mic-btn').addEventListener('click', () => this.recognition.start());
-                }
-            }
-        };
+        function switchTab(tabId) {
+            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+        }
 
-        window.onload = () => { DatabaseModule.loadData(); SpeechModule.init(); UIModule.updateAll(); document.getElementById('add-btn').addEventListener('click', () => InputModule.addItem(document.getElementById('manual-input').value)); };
+        function saveData() { localStorage.setItem('einkaufszettel_pro', JSON.stringify(appData)); }
+        function loadData() { 
+            const saved = localStorage.getItem('einkaufszettel_pro');
+            if(saved) appData = JSON.parse(saved);
+            if(appData.settings.darkMode) document.documentElement.classList.add('dark');
+        }
+
+        loadData();
     </script>
 </body>
 </html>
