@@ -43,132 +43,168 @@
         .view { display: none; }
         .view.active { display: flex; flex-direction: column; }
         
-        /* Tab Bar Styles */
-        .tab-btn { transition: color 0.2s ease; }
-        
-        /* Safe Area für moderne Smartphones (iPhone Notch etc.) */
-        @supports (padding-bottom: env(safe-area-inset-bottom)) {
-            .pb-safe { padding-bottom: calc(env(safe-area-inset-bottom) + 0.5rem); }
-        }
+        /* Bottom Safe Area für moderne iPhones */
+        .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
     </style>
 </head>
-<body class="text-gray-800 antialiased h-screen overflow-hidden">
+<body class="text-gray-800 antialiased h-screen w-screen overflow-hidden flex justify-center bg-gray-900">
 
-    <div class="max-w-md w-full mx-auto bg-gray-50 h-full shadow-xl relative overflow-hidden flex flex-col">
+    <!-- App Container (Mobile Ansicht) -->
+    <div class="max-w-md w-full bg-gray-50 h-full shadow-2xl relative flex flex-col overflow-hidden">
 
-        <!-- MAIN CONTENT WRAPPER -->
-        <div class="flex-1 relative overflow-hidden">
-            
-            <!-- VIEW 1: EINKAUFSZETTEL -->
-            <div id="view-shopping" class="view active h-full w-full absolute inset-0">
-                <header class="bg-teal-600 text-white p-5 rounded-b-3xl shadow-md z-10">
-                    <h1 class="text-2xl font-bold flex items-center gap-2" id="current-list-title">Lade Liste...</h1>
-                    <p class="text-teal-100 text-sm mt-1" id="item-count">0 Artikel auf der Liste</p>
-                </header>
+        <!-- ============================================== -->
+        <!-- VIEW 1: EINKAUFSZETTEL (Hauptansicht)          -->
+        <!-- ============================================== -->
+        <div id="view-shopping" class="view active h-full w-full flex flex-col">
+            <!-- Header -->
+            <header class="bg-teal-600 text-white p-5 rounded-b-3xl shadow-md z-10 flex-shrink-0">
+                <h1 class="text-2xl font-bold flex items-center gap-2" id="current-list-title">
+                    Lade Liste...
+                </h1>
+                <p class="text-teal-100 text-sm mt-1" id="item-count">0 Artikel auf der Liste</p>
+            </header>
 
-                <main class="flex-1 overflow-y-auto p-4 pb-32">
-                    <ul id="shopping-list" class="space-y-3"></ul>
-                    <div id="empty-state" class="flex flex-col items-center justify-center h-full text-gray-400 mt-10">
-                        <i class="ph ph-basket text-6xl mb-3 text-gray-300"></i>
-                        <p class="text-center">Dein Zettel ist leer.<br>Tippe auf das Mikrofon!</p>
+            <!-- Main Content Area (Scrollbar) -->
+            <main class="flex-1 overflow-y-auto p-4 relative">
+                <ul id="shopping-list" class="space-y-3 pb-4"></ul>
+                
+                <div id="empty-state" class="flex flex-col items-center justify-center h-full text-gray-400 mt-10 absolute inset-0">
+                    <i class="ph ph-basket text-6xl mb-3 text-gray-300"></i>
+                    <p class="text-center">Dein Zettel ist leer.<br>Tippe auf das Mikrofon!</p>
+                </div>
+            </main>
+
+            <!-- Input Area -->
+            <div class="bg-white border-t border-gray-100 p-4 shadow-[0_-10px_15px_-3px_rgba(0,0,0,0.05)] z-20 flex-shrink-0">
+                <!-- Laden Auswahl -->
+                <div class="flex justify-between items-center mb-2 px-1">
+                    <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">Hinzufügen zu:</span>
+                    <select id="store-select" class="bg-gray-100 border-none text-sm text-teal-700 font-bold rounded-lg py-1.5 px-3 focus:ring-0 cursor-pointer outline-none shadow-inner">
+                        <option value="Allgemein">Allgemein</option>
+                        <option value="Aldi">Aldi</option>
+                        <option value="Lidl">Lidl</option>
+                        <option value="Rewe">Rewe</option>
+                        <option value="Edeka">Edeka</option>
+                        <option value="Kaufland">Kaufland</option>
+                        <option value="Drogerie">dm / Rossmann</option>
+                        <option value="Baumarkt">Baumarkt</option>
+                    </select>
+                </div>
+
+                <div id="status-text" class="text-center text-sm text-gray-500 mb-3 h-5 transition-opacity"></div>
+                <div class="flex items-center gap-2">
+                    <div class="relative flex-1">
+                        <input type="text" id="manual-input" placeholder="Artikel tippen..." 
+                               class="w-full bg-gray-100 border-none rounded-full py-3 px-5 pr-12 focus:outline-none focus:ring-2 focus:ring-teal-500 transition-all shadow-inner">
+                        <button id="add-btn" class="absolute right-1 top-1 bottom-1 bg-teal-600 text-white rounded-full w-10 h-10 flex items-center justify-center hover:bg-teal-700 transition-colors">
+                            <i class="ph ph-plus text-xl"></i>
+                        </button>
                     </div>
-                </main>
+                    <button id="mic-btn" class="w-14 h-14 bg-teal-100 text-teal-600 rounded-full flex items-center justify-center shadow-md transition-all hover:bg-teal-200 focus:outline-none flex-shrink-0">
+                        <i class="ph ph-microphone text-2xl" id="mic-icon"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
 
-                <!-- Input Area (Eingebettet in der View) -->
-                <div class="absolute bottom-0 w-full bg-white border-t border-gray-100 p-4 pb-6 shadow-[0_-10px_15px_-3px_rgba(0,0,0,0.05)] z-20">
-                    <div id="status-text" class="text-center text-sm text-gray-500 mb-3 h-5 transition-opacity"></div>
-                    <div class="flex items-center gap-2">
-                        <div class="relative flex-1">
-                            <input type="text" id="manual-input" placeholder="Artikel tippen..." 
-                                   class="w-full bg-gray-100 border-none rounded-full py-3 px-5 pr-12 focus:outline-none focus:ring-2 focus:ring-teal-500 transition-all shadow-inner">
-                            <button id="add-btn" class="absolute right-1 top-1 bottom-1 bg-teal-600 text-white rounded-full w-10 h-10 flex items-center justify-center hover:bg-teal-700 transition-colors">
-                                <i class="ph ph-plus text-xl"></i>
-                            </button>
-                        </div>
-                        <button id="mic-btn" class="w-14 h-14 bg-teal-100 text-teal-600 rounded-full flex items-center justify-center shadow-md transition-all hover:bg-teal-200 focus:outline-none flex-shrink-0">
-                            <i class="ph ph-microphone text-2xl" id="mic-icon"></i>
+        <!-- ============================================== -->
+        <!-- VIEW 2: LISTEN VERWALTUNG                    -->
+        <!-- ============================================== -->
+        <div id="view-lists" class="view h-full w-full flex flex-col bg-gray-50">
+            <header class="bg-white p-5 border-b shadow-sm flex-shrink-0">
+                <h1 class="text-2xl font-bold text-gray-800">Meine Listen</h1>
+            </header>
+
+            <main class="flex-1 overflow-y-auto p-5">
+                <ul id="lists-container" class="space-y-3 mb-6">
+                    <!-- Listen werden hier injiziert -->
+                </ul>
+                
+                <!-- Neue Liste anlegen -->
+                <div class="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
+                    <h3 class="text-sm font-bold text-gray-600 mb-3">Neue Liste erstellen</h3>
+                    <div class="flex gap-2">
+                        <input type="text" id="new-list-input" placeholder="z.B. Geburtstagsparty..." 
+                               class="flex-1 bg-gray-50 border border-gray-200 rounded-xl py-2 px-4 focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 text-sm transition-all">
+                        <button onclick="createNewList()" class="bg-teal-600 text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-teal-700 transition shadow-sm">
+                            Hinzufügen
                         </button>
                     </div>
                 </div>
-            </div>
-
-            <!-- VIEW 2: LISTEN VERWALTUNG -->
-            <div id="view-lists" class="view h-full w-full absolute inset-0 bg-gray-50 z-30">
-                <header class="bg-white p-5 border-b shadow-sm">
-                    <h1 class="text-xl font-bold text-gray-800">Meine Listen</h1>
-                </header>
-                <main class="flex-1 overflow-y-auto p-5 pb-24">
-                    <ul id="lists-container" class="space-y-2 mb-6"></ul>
-                    <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
-                        <h3 class="text-sm font-bold text-gray-600 mb-3">Neue Liste anlegen</h3>
-                        <div class="flex gap-2">
-                            <input type="text" id="new-list-input" placeholder="z.B. Baumarkt..." 
-                                   class="flex-1 bg-gray-50 border border-gray-200 rounded-xl py-2 px-4 focus:outline-none focus:border-teal-500 text-sm">
-                            <button onclick="createNewList()" class="bg-teal-600 text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-teal-700 transition">
-                                <i class="ph ph-plus font-bold"></i>
-                            </button>
-                        </div>
-                    </div>
-                </main>
-            </div>
-
-            <!-- VIEW 3: EINSTELLUNGEN -->
-            <div id="view-settings" class="view h-full w-full absolute inset-0 bg-gray-50 z-30">
-                <header class="bg-white p-5 border-b shadow-sm">
-                    <h1 class="text-xl font-bold text-gray-800">Einstellungen</h1>
-                </header>
-                <main class="flex-1 overflow-y-auto p-5 pb-24">
-                    <div id="install-container" class="hidden mb-6 bg-gradient-to-r from-teal-500 to-emerald-500 text-white rounded-2xl p-4 shadow-md flex items-center justify-between">
-                        <div>
-                            <h3 class="font-bold">App installieren</h3>
-                            <p class="text-xs text-teal-100">Zum Startbildschirm</p>
-                        </div>
-                        <button id="install-btn" class="bg-white text-teal-600 px-4 py-2 rounded-full text-sm font-bold shadow-sm hover:bg-teal-50">
-                            Installieren
-                        </button>
-                    </div>
-
-                    <h2 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3 ml-1">Optionen</h2>
-                    <div class="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
-                        <div class="p-4 border-b border-gray-50 flex items-center justify-between">
-                            <div class="flex items-center gap-3">
-                                <div class="w-8 h-8 rounded-full bg-blue-50 text-blue-500 flex items-center justify-center">
-                                    <i class="ph ph-translate text-lg"></i>
-                                </div>
-                                <span class="text-gray-700">Sprache</span>
-                            </div>
-                            <select id="lang-select" onchange="saveSettings()" class="bg-gray-100 border-none text-sm rounded-lg py-1 px-2 focus:ring-0 cursor-pointer">
-                                <option value="de-DE">Deutsch</option>
-                                <option value="en-US">English</option>
-                            </select>
-                        </div>
-                        <div class="p-4 flex items-center justify-between cursor-pointer hover:bg-red-50 transition" onclick="clearAllData()">
-                            <div class="flex items-center gap-3">
-                                <div class="w-8 h-8 rounded-full bg-red-50 text-red-500 flex items-center justify-center">
-                                    <i class="ph ph-warning-circle text-lg"></i>
-                                </div>
-                                <span class="text-red-600 font-medium">Daten löschen</span>
-                            </div>
-                        </div>
-                    </div>
-                </main>
-            </div>
-
+            </main>
         </div>
 
-        <!-- BOTTOM NAVIGATION TAB BAR -->
-        <nav class="bg-white border-t border-gray-200 flex justify-around pb-safe pt-2 px-2 z-40 pb-4 shadow-[0_-4px_15px_rgba(0,0,0,0.03)]">
-            <button onclick="switchTab('view-shopping', this)" class="tab-btn active flex flex-col items-center p-2 text-teal-600 w-20">
-                <i class="ph ph-shopping-cart text-2xl mb-1"></i>
-                <span class="text-[10px] font-medium">Einkauf</span>
+        <!-- ============================================== -->
+        <!-- VIEW 3: SETUP & EINSTELLUNGEN                -->
+        <!-- ============================================== -->
+        <div id="view-setup" class="view h-full w-full flex flex-col bg-gray-50">
+            <header class="bg-white p-5 border-b shadow-sm flex-shrink-0">
+                <h1 class="text-2xl font-bold text-gray-800">Einstellungen</h1>
+            </header>
+
+            <main class="flex-1 overflow-y-auto p-5">
+                <!-- Install App Banner (Wird nur angezeigt, wenn verfügbar) -->
+                <div id="install-container" class="hidden mb-6 bg-gradient-to-r from-teal-500 to-emerald-500 text-white rounded-2xl p-4 shadow-md flex items-center justify-between">
+                    <div>
+                        <h3 class="font-bold">App installieren</h3>
+                        <p class="text-xs text-teal-100">Zum Startbildschirm hinzufügen</p>
+                    </div>
+                    <button id="install-btn" class="bg-white text-teal-600 px-4 py-2 rounded-full text-sm font-bold shadow-sm hover:bg-teal-50">
+                        Installieren
+                    </button>
+                </div>
+
+                <!-- Bereich: Einstellungen -->
+                <h2 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3 ml-1 mt-4">System</h2>
+                <div class="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm mb-6">
+                    
+                    <!-- Einstellung: Sprache -->
+                    <div class="p-4 border-b border-gray-50 flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-full bg-blue-50 text-blue-500 flex items-center justify-center">
+                                <i class="ph ph-translate text-lg"></i>
+                            </div>
+                            <span class="text-gray-700 font-medium">Sprache (Mikrofon)</span>
+                        </div>
+                        <select id="lang-select" onchange="saveSettings()" class="bg-gray-100 border-none text-sm font-medium rounded-lg py-1.5 px-3 focus:ring-0 cursor-pointer outline-none">
+                            <option value="de-DE">Deutsch</option>
+                            <option value="en-US">English</option>
+                        </select>
+                    </div>
+
+                    <!-- Einstellung: Alles löschen -->
+                    <div class="p-4 flex items-center justify-between cursor-pointer hover:bg-red-50 transition" onclick="clearAllData()">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-full bg-red-50 text-red-500 flex items-center justify-center">
+                                <i class="ph ph-warning-circle text-lg"></i>
+                            </div>
+                            <span class="text-red-600 font-medium">Alle Daten löschen</span>
+                        </div>
+                    </div>
+
+                </div>
+
+                <div class="text-center mt-10 text-xs text-gray-400 pb-10">
+                    Einkaufszettel v3.0<br>Made with ❤️ für Go Gurl
+                </div>
+            </main>
+        </div>
+
+        <!-- ============================================== -->
+        <!-- BOTTOM TAB BAR                                 -->
+        <!-- ============================================== -->
+        <nav class="bg-white border-t border-gray-200 flex justify-around pb-safe flex-shrink-0 z-30 shadow-[0_-5px_15px_-3px_rgba(0,0,0,0.05)]">
+            <button onclick="switchTab('view-shopping')" id="tab-view-shopping" class="tab-btn flex-1 py-3 flex flex-col items-center gap-1 text-teal-600 transition">
+                <i class="ph ph-shopping-cart text-2xl mb-0.5"></i>
+                <span class="text-[10px] font-bold">Einkauf</span>
             </button>
-            <button onclick="switchTab('view-lists', this)" class="tab-btn flex flex-col items-center p-2 text-gray-400 hover:text-teal-500 w-20">
-                <i class="ph ph-list-numbers text-2xl mb-1"></i>
-                <span class="text-[10px] font-medium">Listen</span>
+            <button onclick="switchTab('view-lists')" id="tab-view-lists" class="tab-btn flex-1 py-3 flex flex-col items-center gap-1 text-gray-400 hover:text-teal-500 transition">
+                <i class="ph ph-list text-2xl mb-0.5"></i>
+                <span class="text-[10px] font-bold">Listen</span>
             </button>
-            <button onclick="switchTab('view-settings', this)" class="tab-btn flex flex-col items-center p-2 text-gray-400 hover:text-teal-500 w-20">
-                <i class="ph ph-gear text-2xl mb-1"></i>
-                <span class="text-[10px] font-medium">Setup</span>
+            <button onclick="switchTab('view-setup')" id="tab-view-setup" class="tab-btn flex-1 py-3 flex flex-col items-center gap-1 text-gray-400 hover:text-teal-500 transition">
+                <i class="ph ph-gear text-2xl mb-0.5"></i>
+                <span class="text-[10px] font-bold">Setup</span>
             </button>
         </nav>
 
@@ -178,8 +214,6 @@
         // ==========================================
         // 1. DATEN-STRUKTUR & MIGRATION
         // ==========================================
-        
-        // Grundgerüst der Daten
         let appData = {
             currentListId: 'list_1',
             settings: { lang: 'de-DE' },
@@ -188,34 +222,31 @@
             ]
         };
 
-        // Lade Daten aus LocalStorage oder migriere alte Version v1
         function loadData() {
-            const savedData = localStorage.getItem('einkaufszettel_v2');
+            const savedData = localStorage.getItem('einkaufszettel_v3');
             if (savedData) {
                 appData = JSON.parse(savedData);
             } else {
-                // Check ob alte Daten (v1) existieren
-                const oldList = localStorage.getItem('shoppingList');
-                if (oldList) {
-                    appData.lists[0].items = JSON.parse(oldList);
-                    // Alte Daten löschen um aufzuräumen
-                    localStorage.removeItem('shoppingList'); 
+                // Check ob alte Daten (v2) existieren um zu migrieren
+                const oldData = localStorage.getItem('einkaufszettel_v2');
+                if (oldData) {
+                    appData = JSON.parse(oldData);
+                    localStorage.removeItem('einkaufszettel_v2');
                 }
                 saveData();
             }
         }
 
         function saveData() {
-            localStorage.setItem('einkaufszettel_v2', JSON.stringify(appData));
+            localStorage.setItem('einkaufszettel_v3', JSON.stringify(appData));
         }
 
-        // Hilfsfunktion: Aktuelle Liste bekommen
         function getCurrentList() {
             return appData.lists.find(l => l.id === appData.currentListId) || appData.lists[0];
         }
 
         // ==========================================
-        // 2. UI UPDATE LOGIK (Einkaufszettel)
+        // 2. UI UPDATE LOGIK (Einkaufszettel & Läden)
         // ==========================================
         const listElement = document.getElementById('shopping-list');
         const emptyState = document.getElementById('empty-state');
@@ -236,54 +267,76 @@
             } else {
                 emptyState.style.display = 'none';
                 
-                // Gekaufte Artikel nach unten sortieren
-                const sortedItems = [...currentList.items].sort((a, b) => a.checked - b.checked);
+                // Artikel nach Laden gruppieren
+                const groups = {};
+                currentList.items.forEach(item => {
+                    const storeName = item.store || 'Allgemein';
+                    if (!groups[storeName]) groups[storeName] = [];
+                    groups[storeName].push(item);
+                });
 
-                sortedItems.forEach(item => {
-                    const li = document.createElement('li');
-                    li.className = `fade-in flex items-center justify-between p-4 bg-white rounded-2xl shadow-sm border ${item.checked ? 'border-gray-200 opacity-60 bg-gray-50' : 'border-gray-100'} transition-all duration-200`;
-                    
-                    let quantityHtml = '';
-                    if (item.quantity) {
-                        const badgeClass = item.quantityConfirmed 
-                            ? 'bg-teal-100 text-teal-700 border-teal-200' 
-                            : 'bg-orange-100 text-orange-700 border-orange-200 shadow-md transform hover:scale-105';
-                        const iconHtml = item.quantityConfirmed ? '<i class="ph ph-check text-xs mr-1 font-bold"></i>' : '';
-                        
-                        quantityHtml = `
-                            <div onclick="toggleQuantity(event, '${item.id}')" 
-                                 class="mr-3 px-3 py-1.5 rounded-xl border font-bold text-sm flex items-center cursor-pointer transition-all active:scale-95 ${badgeClass}">
-                                ${iconHtml}${item.quantity}
-                            </div>
-                        `;
-                    }
-
-                    li.innerHTML = `
-                        <div class="flex items-center flex-1 min-w-0 pr-2">
-                            <label class="flex items-center justify-center cursor-pointer mr-3">
-                                <div class="relative flex items-center justify-center">
-                                    <input type="checkbox" class="custom-checkbox opacity-0 absolute h-0 w-0" ${item.checked ? 'checked' : ''} onchange="toggleItem('${item.id}')">
-                                    <div class="w-6 h-6 border-2 border-gray-300 rounded-full flex items-center justify-center transition-colors">
-                                        <svg class="w-4 h-4 text-white hidden pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-                                        </svg>
-                                    </div>
-                                </div>
-                            </label>
-                            ${quantityHtml}
-                            <span class="text-lg truncate ${item.checked ? 'line-through text-gray-400' : 'text-gray-700'} transition-colors cursor-pointer" onclick="toggleItem('${item.id}')">${item.text}</span>
-                        </div>
-                        <button onclick="deleteItem('${item.id}')" class="text-gray-400 hover:text-red-500 p-2 rounded-full hover:bg-red-50 transition-colors focus:outline-none flex-shrink-0">
-                            <i class="ph ph-trash text-xl"></i>
-                        </button>
+                // Gruppen alphabetisch durchgehen und rendern
+                Object.keys(groups).sort().forEach(store => {
+                    // 1. Überschrift für den Laden erstellen
+                    const storeHeader = document.createElement('li');
+                    storeHeader.className = "mt-6 mb-2 px-1";
+                    storeHeader.innerHTML = `
+                        <h3 class="text-[11px] font-bold text-teal-600 uppercase tracking-wider flex items-center gap-1">
+                            <i class="ph ph-storefront text-sm"></i> ${store}
+                        </h3>
                     `;
-                    listElement.appendChild(li);
+                    listElement.appendChild(storeHeader);
+
+                    // 2. Gekaufte Artikel dieses Ladens nach unten sortieren
+                    const sortedItems = groups[store].sort((a, b) => a.checked - b.checked);
+
+                    sortedItems.forEach(item => {
+                        const li = document.createElement('li');
+                        li.className = `fade-in flex items-center justify-between p-4 bg-white rounded-2xl shadow-sm border ${item.checked ? 'border-gray-200 opacity-60 bg-gray-50' : 'border-gray-100'} transition-all duration-200 mb-2`;
+                        
+                        let quantityHtml = '';
+                        if (item.quantity) {
+                            const badgeClass = item.quantityConfirmed 
+                                ? 'bg-teal-100 text-teal-700 border-teal-200' 
+                                : 'bg-orange-100 text-orange-700 border-orange-200 shadow-md transform hover:scale-105';
+                            const iconHtml = item.quantityConfirmed ? '<i class="ph ph-check text-xs mr-1 font-bold"></i>' : '';
+                            
+                            quantityHtml = `
+                                <div onclick="toggleQuantity(event, '${item.id}')" 
+                                     class="mr-3 px-3 py-1.5 rounded-xl border font-bold text-sm flex items-center cursor-pointer transition-all active:scale-95 ${badgeClass}">
+                                    ${iconHtml}${item.quantity}
+                                </div>
+                            `;
+                        }
+
+                        li.innerHTML = `
+                            <div class="flex items-center flex-1 min-w-0 pr-2">
+                                <label class="flex items-center justify-center cursor-pointer mr-3">
+                                    <div class="relative flex items-center justify-center">
+                                        <input type="checkbox" class="custom-checkbox opacity-0 absolute h-0 w-0" ${item.checked ? 'checked' : ''} onchange="toggleItem('${item.id}')">
+                                        <div class="w-6 h-6 border-2 border-gray-300 rounded-full flex items-center justify-center transition-colors">
+                                            <svg class="w-4 h-4 text-white hidden pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                                            </svg>
+                                        </div>
+                                    </div>
+                                </label>
+                                ${quantityHtml}
+                                <span class="text-lg truncate ${item.checked ? 'line-through text-gray-400' : 'text-gray-700'} transition-colors cursor-pointer" onclick="toggleItem('${item.id}')">${item.text}</span>
+                            </div>
+                            <button onclick="deleteItem('${item.id}')" class="text-gray-400 hover:text-red-500 p-2 rounded-full hover:bg-red-50 transition-colors focus:outline-none flex-shrink-0">
+                                <i class="ph ph-trash text-xl"></i>
+                            </button>
+                        `;
+                        listElement.appendChild(li);
+                    });
                 });
             }
 
             const openItemsCount = currentList.items.filter(i => !i.checked).length;
             itemCountText.textContent = `${openItemsCount} Artikel in '${currentList.name}'`;
         }
+
 
         // ==========================================
         // 3. LISTEN-VERWALTUNG & EINSTELLUNGEN
@@ -292,40 +345,36 @@
         const newListInput = document.getElementById('new-list-input');
         const langSelect = document.getElementById('lang-select');
 
-        function updateMenuUI() {
+        function updateListsUI() {
             listsContainer.innerHTML = '';
             
             appData.lists.forEach(list => {
                 const isActive = list.id === appData.currentListId;
                 const li = document.createElement('li');
-                li.className = `flex items-center justify-between p-3 rounded-xl cursor-pointer border ${isActive ? 'bg-teal-50 border-teal-200' : 'bg-white border-gray-100 hover:bg-gray-50'}`;
+                li.className = `flex items-center justify-between p-4 rounded-2xl cursor-pointer border shadow-sm transition-all ${isActive ? 'bg-teal-50 border-teal-200' : 'bg-white border-gray-100 hover:bg-gray-50'}`;
                 
                 li.innerHTML = `
-                    <div class="flex-1 font-medium ${isActive ? 'text-teal-700' : 'text-gray-700'}" onclick="selectList('${list.id}')">
-                        <i class="ph ${isActive ? 'ph-check-circle text-teal-500' : 'ph-list'} mr-2"></i>
-                        ${list.name} (${list.items.length})
+                    <div class="flex-1 font-bold text-lg flex items-center ${isActive ? 'text-teal-700' : 'text-gray-700'}" onclick="selectList('${list.id}')">
+                        <i class="ph ${isActive ? 'ph-check-circle text-teal-500 text-xl' : 'ph-list text-xl text-gray-400'} mr-3"></i>
+                        ${list.name} 
+                        <span class="ml-2 text-xs font-normal bg-white px-2 py-1 rounded-full border border-gray-200">${list.items.length} Artikel</span>
                     </div>
                     ${appData.lists.length > 1 ? `
-                    <button onclick="deleteList('${list.id}')" class="text-gray-400 hover:text-red-500 p-1 rounded transition">
-                        <i class="ph ph-trash"></i>
+                    <button onclick="deleteList('${list.id}')" class="text-gray-400 hover:text-red-500 p-2 rounded-full hover:bg-red-50 transition">
+                        <i class="ph ph-trash text-xl"></i>
                     </button>
                     ` : ''}
                 `;
                 listsContainer.appendChild(li);
             });
-
-            langSelect.value = appData.settings.lang;
         }
 
         function selectList(id) {
             appData.currentListId = id;
             saveData();
-            updateMenuUI();
+            updateListsUI();
             updateShoppingUI();
-            
-            // Wechsel zurück zum Einkaufs-Tab
-            const shoppingTabBtn = document.querySelector('.tab-btn:nth-child(1)');
-            switchTab('view-shopping', shoppingTabBtn);
+            switchTab('view-shopping');
         }
 
         function createNewList() {
@@ -339,16 +388,13 @@
             };
             
             appData.lists.push(newList);
-            appData.currentListId = newList.id; // Direkt auswählen
+            appData.currentListId = newList.id;
             newListInput.value = '';
             
             saveData();
-            updateMenuUI();
+            updateListsUI();
             updateShoppingUI();
-            
-            // Wechsel zurück zum Einkaufs-Tab
-            const shoppingTabBtn = document.querySelector('.tab-btn:nth-child(1)');
-            switchTab('view-shopping', shoppingTabBtn);
+            switchTab('view-shopping');
         }
 
         function deleteList(id) {
@@ -358,9 +404,13 @@
                     appData.currentListId = appData.lists[0].id;
                 }
                 saveData();
-                updateMenuUI();
+                updateListsUI();
                 updateShoppingUI();
             }
+        }
+
+        function updateSetupUI() {
+            langSelect.value = appData.settings.lang || 'de-DE';
         }
 
         function saveSettings() {
@@ -371,13 +421,14 @@
 
         function clearAllData() {
             if (confirm('ACHTUNG: Willst du wirklich ALLE Listen und Daten unwiderruflich löschen?')) {
-                localStorage.removeItem('einkaufszettel_v2');
-                location.reload(); // App neustarten
+                localStorage.removeItem('einkaufszettel_v3');
+                location.reload(); 
             }
         }
 
+
         // ==========================================
-        // 4. ITEM LOGIK (Hinzufügen, Abhaken, Löschen)
+        // 4. ITEM LOGIK (Parsing, Hinzufügen, Abhaken)
         // ==========================================
         const manualInput = document.getElementById('manual-input');
 
@@ -385,28 +436,23 @@
             let text = input.trim().replace(/\.$/, '');
             let quantity = '';
             
-            // Zahlwörter am Anfang in Ziffern umwandeln (für Spracheingabe)
-            const numWords = {
-                'ein': 1, 'eine': 1, 'einen': 1, 'zwei': 2, 'drei': 3, 'vier': 4,
-                'fünf': 5, 'sechs': 6, 'sieben': 7, 'acht': 8, 'neun': 9, 'zehn': 10,
-                'elf': 11, 'zwölf': 12
-            };
-            const firstWord = text.split(' ')[0].toLowerCase();
-            if (numWords[firstWord]) {
-                text = text.replace(new RegExp(`^${firstWord}\\s+`, 'i'), numWords[firstWord] + ' ');
+            // Zahlwörter am Anfang in Ziffern umwandeln
+            const numMap = { "ein": 1, "eine": 1, "einen": 1, "zwei": 2, "drei": 3, "vier": 4, "fünf": 5, "sechs": 6, "sieben": 7, "acht": 8, "neun": 9, "zehn": 10, "elf": 11, "zwölf": 12 };
+            const words = text.split(' ');
+            if (words.length > 1) {
+                let firstWord = words[0].toLowerCase();
+                if (numMap[firstWord]) words[0] = numMap[firstWord];
+                text = words.join(' ');
             }
 
-            // Erkennt Zahlen (auch mit Komma) und optionale Einheiten am Anfang
-            // z.B. "3 kg", "1,5 Liter", "2 Flaschen", "5"
-            const match = text.match(/^(\d+(?:[.,]\d+)?)\s*(kg|g|l|ml|liter|packung|packungen|flasche|flaschen|stück|dose|dosen|x)?\s+(.*)$/i);
+            // Prüfen ob es mit einer Zahl + evt. Einheit anfängt
+            const match = text.match(/^(\d+(?:[.,]\d+)?\s*(?:liter|l|kilo|kg|gramm|g|packungen|packung|stück|flaschen|flasche|dosen|dose|gläser|glas)?)\s+(.*)/i);
             
             if (match) {
-                let amount = match[1];
-                let unit = match[2] ? ' ' + match[2] : '';
-                quantity = (amount + unit).trim();
-                text = match[3];
+                quantity = match[1].trim();
+                text = match[2].trim();
             }
-
+            
             return {
                 text: text.charAt(0).toUpperCase() + text.slice(1),
                 quantity: quantity
@@ -418,30 +464,21 @@
             
             const parsed = parseItemInput(text);
             const currentList = getCurrentList();
+            const selectedStore = document.getElementById('store-select').value;
 
             currentList.items.push({
                 id: Date.now().toString(),
                 text: parsed.text,
                 quantity: parsed.quantity,
                 quantityConfirmed: false,
-                checked: false
+                checked: false,
+                store: selectedStore
             });
             
             saveData();
-            updateMenuUI(); 
+            updateListsUI(); 
             updateShoppingUI();
             manualInput.value = ''; 
-        }
-
-        function toggleQuantity(event, id) {
-            event.stopPropagation(); // Verhindert, dass das Klick-Event den ganzen Artikel abhakt
-            const currentList = getCurrentList();
-            const item = currentList.items.find(i => i.id === id);
-            if (item && item.quantity) {
-                item.quantityConfirmed = !item.quantityConfirmed;
-                saveData();
-                updateShoppingUI();
-            }
         }
 
         function toggleItem(id) {
@@ -452,33 +489,47 @@
             updateShoppingUI();
         }
 
+        function toggleQuantity(event, id) {
+            event.stopPropagation(); // Verhindert, dass das Item auch abgehakt wird
+            const currentList = getCurrentList();
+            const item = currentList.items.find(i => i.id === id);
+            if (item) {
+                item.quantityConfirmed = !item.quantityConfirmed;
+                saveData();
+                updateShoppingUI();
+            }
+        }
+
         function deleteItem(id) {
             const currentList = getCurrentList();
             currentList.items = currentList.items.filter(item => item.id !== id);
             saveData();
-            updateMenuUI();
+            updateListsUI();
             updateShoppingUI();
         }
 
+
         // ==========================================
-        // 5. VIEW NAVIGATION
+        // 5. VIEW / TAB NAVIGATION
         // ==========================================
-        function switchView(viewId) {
+        function switchTab(viewId) {
+            // Views umschalten
             document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
             document.getElementById(viewId).classList.add('active');
-            if (viewId === 'view-lists' || viewId === 'view-settings') updateMenuUI();
-        }
-
-        function switchTab(viewId, btnElement) {
-            switchView(viewId);
-            // Tab Button Styles aktualisieren
+            
+            // Tab-Buttons optisch anpassen
             document.querySelectorAll('.tab-btn').forEach(btn => {
-                btn.classList.remove('active', 'text-teal-600');
+                btn.classList.remove('text-teal-600');
                 btn.classList.add('text-gray-400');
             });
-            btnElement.classList.add('active', 'text-teal-600');
-            btnElement.classList.remove('text-gray-400');
+            document.getElementById('tab-' + viewId).classList.remove('text-gray-400');
+            document.getElementById('tab-' + viewId).classList.add('text-teal-600');
+
+            // Spezifische UI Updates laden
+            if (viewId === 'view-lists') updateListsUI();
+            if (viewId === 'view-setup') updateSetupUI();
         }
+
 
         // ==========================================
         // 6. SPRACHERKENNUNG
@@ -525,6 +576,7 @@
             recognition.onend = function() { stopListening(); };
         } else {
             micBtn.style.display = 'none';
+            statusText.textContent = "Spracheingabe in diesem Browser nicht unterstützt.";
         }
 
         function stopListening() {
@@ -536,10 +588,10 @@
         }
 
         micBtn.addEventListener('click', () => {
-            if (!recognition) return alert("Browser unterstützt keine Spracheingabe.");
+            if (!recognition) return;
             if (isListening) { recognition.stop(); } 
             else { 
-                recognition.lang = appData.settings.lang;
+                recognition.lang = appData.settings.lang || 'de-DE';
                 recognition.start(); 
             }
         });
@@ -549,10 +601,10 @@
 
 
         // ==========================================
-        // 7. PWA (APP INSTALLIEREN) LOGIK (Single-File Trick)
+        // 7. PWA (APP INSTALLIEREN) LOGIK
         // ==========================================
         
-        // 7.1 Manifest on-the-fly generieren
+        // Manifest on-the-fly generieren
         const manifest = {
             name: "Einkaufszettel",
             short_name: "Einkauf",
@@ -561,7 +613,6 @@
             theme_color: "#0d9488",
             start_url: location.href,
             icons: [{
-                // Ein einfaches SVG Icon als Base64 kodiert
                 src: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNTYgMjU2Ij48cmVjdCB3aWR0aD0iMjU2IiBoZWlnaHQ9IjI1NiIgZmlsbD0iIzBkOTQ4OCIvPjxjaXJjbGUgY3g9Ijg4IiBjeT0iMjE2IiByPSIxNiIgZmlsbD0id2hpdGUiLz48Y2lyY2xlIGN4PSIxNjgiIGN5PSIyMTYiIHI9IjE2IiBmaWxsPSJ3aGl0ZSIvPjxwYXRoIGQ9Ik0yMi45LDM4LjFBMjQsMjQsMCwwLDAsMTYsMjRIOEE4LDgsMCwwLDEsOCw4aDhBNDAsNDAsMCwwLDEsNDcuMSwzMy42TDU3LjMsNTRIMjI0YTE2LjEsMTYuMSwwLDAsMSwxNC43LDIyLjFsLTI0LDY0QTE2LDE2LDAsMCwxLDIwMCwxNTJIODQuN0wzOC40LDQ3WiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBzdHJva2Utd2lkdGg9IjE2Ii8+PC9zdmc+",
                 sizes: "512x512",
                 type: "image/svg+xml",
@@ -571,28 +622,25 @@
         const manifestBlob = new Blob([JSON.stringify(manifest)], {type: 'application/json'});
         document.getElementById('manifest-link').href = URL.createObjectURL(manifestBlob);
 
-        // 7.2 Service Worker Dummy registrieren (wird von Chrome für den Install-Prompt gefordert)
+        // Service Worker Dummy registrieren
         if ('serviceWorker' in navigator) {
             const swCode = `
                 self.addEventListener('install', (e) => self.skipWaiting());
                 self.addEventListener('activate', (e) => e.waitUntil(clients.claim()));
-                self.addEventListener('fetch', (e) => {}); // Leerer Fetch-Handler reicht meist aus
+                self.addEventListener('fetch', (e) => {}); 
             `;
             const swBlob = new Blob([swCode], {type: 'application/javascript'});
-            navigator.serviceWorker.register(URL.createObjectURL(swBlob)).catch(err => console.log('SW Info:', err));
+            navigator.serviceWorker.register(URL.createObjectURL(swBlob)).catch(() => {});
         }
 
-        // 7.3 Install Prompt abfangen und Button anzeigen
+        // Install Prompt abfangen
         let deferredPrompt;
         const installContainer = document.getElementById('install-container');
         const installBtn = document.getElementById('install-btn');
 
         window.addEventListener('beforeinstallprompt', (e) => {
-            // Standard-Prompt des Browsers unterdrücken
             e.preventDefault();
-            // Event speichern, um es später auszulösen
             deferredPrompt = e;
-            // Unseren custom "Installieren" Button im Menü anzeigen
             installContainer.classList.remove('hidden');
         });
 
@@ -601,15 +649,14 @@
                 deferredPrompt.prompt();
                 const { outcome } = await deferredPrompt.userChoice;
                 if (outcome === 'accepted') {
-                    installContainer.classList.add('hidden'); // Verstecken nach erfolgreicher Installation
+                    installContainer.classList.add('hidden');
                 }
                 deferredPrompt = null;
             }
         });
 
-
         // ==========================================
-        // INITIALISIERUNG
+        // INITIALISIERUNG BEIM START
         // ==========================================
         loadData();
         updateShoppingUI();
