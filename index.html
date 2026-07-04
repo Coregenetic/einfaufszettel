@@ -243,19 +243,37 @@
                     const li = document.createElement('li');
                     li.className = `fade-in flex items-center justify-between p-4 bg-white rounded-2xl shadow-sm border ${item.checked ? 'border-gray-200 opacity-60 bg-gray-50' : 'border-gray-100'} transition-all duration-200`;
                     
-                    li.innerHTML = `
-                        <label class="flex items-center gap-3 cursor-pointer flex-1">
-                            <div class="relative flex items-center justify-center">
-                                <input type="checkbox" class="custom-checkbox opacity-0 absolute h-0 w-0" ${item.checked ? 'checked' : ''} onchange="toggleItem('${item.id}')">
-                                <div class="w-6 h-6 border-2 border-gray-300 rounded-full flex items-center justify-center transition-colors">
-                                    <svg class="w-4 h-4 text-white hidden pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-                                    </svg>
-                                </div>
+                    let quantityHtml = '';
+                    if (item.quantity) {
+                        const badgeClass = item.quantityConfirmed 
+                            ? 'bg-teal-100 text-teal-700 border-teal-200' 
+                            : 'bg-orange-100 text-orange-700 border-orange-200 shadow-md transform hover:scale-105';
+                        const iconHtml = item.quantityConfirmed ? '<i class="ph ph-check text-xs mr-1 font-bold"></i>' : '';
+                        
+                        quantityHtml = `
+                            <div onclick="toggleQuantity(event, '${item.id}')" 
+                                 class="mr-3 px-3 py-1.5 rounded-xl border font-bold text-sm flex items-center cursor-pointer transition-all active:scale-95 ${badgeClass}">
+                                ${iconHtml}${item.quantity}
                             </div>
-                            <span class="text-lg ${item.checked ? 'line-through text-gray-400' : 'text-gray-700'} transition-colors">${item.text}</span>
-                        </label>
-                        <button onclick="deleteItem('${item.id}')" class="text-gray-400 hover:text-red-500 p-2 rounded-full hover:bg-red-50 transition-colors ml-2 focus:outline-none">
+                        `;
+                    }
+
+                    li.innerHTML = `
+                        <div class="flex items-center flex-1 min-w-0 pr-2">
+                            <label class="flex items-center justify-center cursor-pointer mr-3">
+                                <div class="relative flex items-center justify-center">
+                                    <input type="checkbox" class="custom-checkbox opacity-0 absolute h-0 w-0" ${item.checked ? 'checked' : ''} onchange="toggleItem('${item.id}')">
+                                    <div class="w-6 h-6 border-2 border-gray-300 rounded-full flex items-center justify-center transition-colors">
+                                        <svg class="w-4 h-4 text-white hidden pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                                        </svg>
+                                    </div>
+                                </div>
+                            </label>
+                            ${quantityHtml}
+                            <span class="text-lg truncate ${item.checked ? 'line-through text-gray-400' : 'text-gray-700'} transition-colors cursor-pointer" onclick="toggleItem('${item.id}')">${item.text}</span>
+                        </div>
+                        <button onclick="deleteItem('${item.id}')" class="text-gray-400 hover:text-red-500 p-2 rounded-full hover:bg-red-50 transition-colors focus:outline-none flex-shrink-0">
                             <i class="ph ph-trash text-xl"></i>
                         </button>
                     `;
@@ -363,23 +381,67 @@
         // ==========================================
         const manualInput = document.getElementById('manual-input');
 
-        function addItem(text) {
-            const cleanText = text.trim();
-            if (!cleanText) return;
+        function parseItemInput(input) {
+            let text = input.trim().replace(/\.$/, '');
+            let quantity = '';
             
-            const formattedText = cleanText.replace(/\.$/, '');
+            // Zahlwörter am Anfang in Ziffern umwandeln (für Spracheingabe)
+            const numWords = {
+                'ein': 1, 'eine': 1, 'einen': 1, 'zwei': 2, 'drei': 3, 'vier': 4,
+                'fünf': 5, 'sechs': 6, 'sieben': 7, 'acht': 8, 'neun': 9, 'zehn': 10,
+                'elf': 11, 'zwölf': 12
+            };
+            const firstWord = text.split(' ')[0].toLowerCase();
+            if (numWords[firstWord]) {
+                text = text.replace(new RegExp(`^${firstWord}\\s+`, 'i'), numWords[firstWord] + ' ');
+            }
+
+            // Erkennt Zahlen (auch mit Komma) und optionale Einheiten am Anfang
+            // z.B. "3 kg", "1,5 Liter", "2 Flaschen", "5"
+            const match = text.match(/^(\d+(?:[.,]\d+)?)\s*(kg|g|l|ml|liter|packung|packungen|flasche|flaschen|stück|dose|dosen|x)?\s+(.*)$/i);
+            
+            if (match) {
+                let amount = match[1];
+                let unit = match[2] ? ' ' + match[2] : '';
+                quantity = (amount + unit).trim();
+                text = match[3];
+            }
+
+            return {
+                text: text.charAt(0).toUpperCase() + text.slice(1),
+                quantity: quantity
+            };
+        }
+
+        function addItem(text) {
+            if (!text.trim()) return;
+            
+            const parsed = parseItemInput(text);
             const currentList = getCurrentList();
 
             currentList.items.push({
                 id: Date.now().toString(),
-                text: formattedText.charAt(0).toUpperCase() + formattedText.slice(1),
+                text: parsed.text,
+                quantity: parsed.quantity,
+                quantityConfirmed: false,
                 checked: false
             });
             
             saveData();
-            updateMenuUI(); // Wegen Zähler in der Liste
+            updateMenuUI(); 
             updateShoppingUI();
             manualInput.value = ''; 
+        }
+
+        function toggleQuantity(event, id) {
+            event.stopPropagation(); // Verhindert, dass das Klick-Event den ganzen Artikel abhakt
+            const currentList = getCurrentList();
+            const item = currentList.items.find(i => i.id === id);
+            if (item && item.quantity) {
+                item.quantityConfirmed = !item.quantityConfirmed;
+                saveData();
+                updateShoppingUI();
+            }
         }
 
         function toggleItem(id) {
